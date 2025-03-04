@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elites Forum</title>
+    <style>
+        /* تنسيق الموقع */
+        body {
+            background-color: #0d0d0d;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        nav {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background: black;
+        }
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 20px;
+            padding: 0;
+        }
+        nav a {
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+        }
+        .user-info {
+            display: flex;
+            gap: 10px;
+        }
+        .chatbox {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px auto;
+            width: 50%;
+        }
+        .announcements {
+            background: #222;
+            padding: 10px;
+            margin-top: 20px;
+            border-radius: 8px;
+        }
+        .announcements ul {
+            list-style: none;
+            padding: 0;
+        }
+        .announcements a {
+            text-decoration: none;
+            color: white;
+            display: block;
+            padding: 5px;
+            margin: 5px 0;
+            background: #444;
+            border-radius: 5px;
+        }
+        .announcements a:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <nav>
+            <ul>
+                <li><a href="#">Forums</a></li>
+                <li><a href="#">Store</a></li>
+                <li><a href="#">Members Shop</a></li>
+                <li><a href="#">Search</a></li>
+            </ul>
+            <div class="user-info">
+                <span>Welcome Ahmedx1</span>
+                <a href="#">🔔</a>
+                <a href="#">⚙️</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <h1>ELITES</h1>
+        <div class="chatbox">
+            <h2>CHATBOX</h2>
+            <p id="chat-loading">Load More...</p>
+        </div>
+
+        <aside class="announcements">
+            <h3>ANNOUNCEMENTS</h3>
+            <ul>
+                <li><a href="#">NEOSERVER.RO - HOSTING SERVICES</a></li>
+                <li><a href="#">Upgrade your account</a></li>
+                <li><a href="#">Looking for Moderators</a></li>
+                <li><a href="#">VIRTUALHOST - 20% OFF</a></li>
+            </ul>
+        </aside>
+    </main>
+
+    <script>
+        // كود JavaScript (اختياري)
+        console.log("Elites Forum Loaded!");
+
+        // تغيير نص "Load More..." بعد 3 ثوانٍ كمثال
+        setTimeout(() => {
+            document.getElementById("chat-loading").textContent = "No More Messages.";
+        }, 3000);
+    </script>
+
+</body>
+</html>
