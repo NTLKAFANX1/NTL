@@ -154,7 +154,7 @@
     </header>
 
     <!-- نموذج تسجيل الدخول -->
-    <div class="login-box" id="login-box">
+    <div class="login-box" id="login-box" style="display: block;">
         <h2>تسجيل الدخول</h2>
         <form id="login-form">
             <input type="text" id="login-username" placeholder="اسم المستخدم" required>
@@ -213,7 +213,6 @@
 
     <script>
         let usersDatabase = [];
-        let scriptsDatabase = [];
         let isLoggedIn = false;
 
         function showSignupForm() {
@@ -282,30 +281,6 @@
             document.getElementById('script-upload-box').style.display = 'none';
             document.getElementById('game-selection').style.display = 'block';
         }
-
-        document.getElementById('script-upload-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const scriptName = document.getElementById('script-name').value;
-            const scriptImage = document.getElementById('script-image').files[0];
-            const scriptDescription = document.getElementById('script-description').value;
-            const scriptCode = document.getElementById('script-code').value;
-
-            const newScript = {
-                name: scriptName,
-                image: URL.createObjectURL(scriptImage),
-                description: scriptDescription,
-                code: scriptCode,
-                date: new Date().toLocaleString()
-            };
-
-            scriptsDatabase.push(newScript);
-            document.getElementById('script-upload-box').style.display = 'none';
-            document.getElementById('game-selection').style.display = 'block';
-        });
-
-        function showScriptView(script) {
-            document.getElementById('script-name-view').textContent = script.name;
-            document.getElementById('script-image-view').src = script.image;
-            document.getElementById('script-description-view').textContent = script.description;
-            document.getElementById('script-code
+    </script>
+</body>
+</html>
