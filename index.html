@@ -212,7 +212,7 @@
     <button class="add-script-btn" id="add-script-btn" onclick="showScriptUploadForm()">+</button>
 
     <script>
-        let usersDatabase = [];
+        let usersDatabase = JSON.parse(localStorage.getItem("usersDatabase")) || [];
         let isLoggedIn = false;
 
         function showSignupForm() {
@@ -225,6 +225,7 @@
             document.getElementById('login-box').style.display = 'block';
         }
 
+        // تحقق من وجود المستخدم في localStorage عند التسجيل
         document.getElementById('login-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const username = document.getElementById('login-username').value;
@@ -242,6 +243,7 @@
             }
         });
 
+        // حفظ بيانات المستخدم في localStorage
         document.getElementById('signup-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const username = document.getElementById('signup-username').value;
@@ -260,6 +262,7 @@
             }
 
             usersDatabase.push({ username, password });
+            localStorage.setItem("usersDatabase", JSON.stringify(usersDatabase));
             document.getElementById('signup-error-message').textContent = '';
             alert('تم إنشاء الحساب بنجاح');
             showLoginForm();
