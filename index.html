@@ -109,6 +109,13 @@
         .hidden {
             display: none;
         }
+
+        /* رسالة الخطأ */
+        .error-message {
+            color: red;
+            font-size: 14px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -134,9 +141,10 @@
         <h2>تسجيل الدخول</h2>
         <form id="login-form">
             <input type="email" id="email" placeholder="البريد الإلكتروني" required>
-            <input type="password" placeholder="كلمة المرور" required>
+            <input type="password" id="password" placeholder="كلمة المرور" required>
             <div class="cf-turnstile" data-sitekey="YOUR_CLOUDFLARE_TURNSTILE_KEY"></div>
             <button type="submit">تسجيل الدخول</button>
+            <p class="error-message" id="error-message"></p>
         </form>
         <!-- إضافة زر تسجيل الدخول بواسطة Google -->
         <button id="google-sign-in">
@@ -181,20 +189,46 @@
         const auth = firebase.auth();
         const provider = new firebase.auth.GoogleAuthProvider();
 
+        // تسجيل الدخول باستخدام البريد الإلكتروني وكلمة المرور
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    document.getElementById('login-box').style.display = 'none';
+                    document.getElementById('welcome-message').textContent = `مرحباً ${user.displayName}`;
+                    document.getElementById('map-city').classList.remove('hidden');
+                    document.getElementById('map-war').classList.remove('hidden');
+                    document.getElementById('map-zombie').classList.remove('hidden');
+                    document.getElementById('map-future').classList.remove('hidden');
+                    document.getElementById('code-entry').classList.remove('hidden');
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    document.getElementById('error-message').textContent = `خطأ: ${errorMessage}`;
+                });
+        });
+
         // تسجيل الدخول بواسطة Google
         document.getElementById('google-sign-in').addEventListener('click', () => {
-            auth.signInWithPopup(provider).then((result) => {
-                const user = result.user;
-                document.getElementById('login-box').style.display = 'none';
-                document.getElementById('welcome-message').textContent = `مرحباً ${user.displayName}`;
-                document.getElementById('map-city').classList.remove('hidden');
-                document.getElementById('map-war').classList.remove('hidden');
-                document.getElementById('map-zombie').classList.remove('hidden');
-                document.getElementById('map-future').classList.remove('hidden');
-                document.getElementById('code-entry').classList.remove('hidden');
-            }).catch((error) => {
-                console.log(error.message);
-            });
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    const user = result.user;
+                    document.getElementById('login-box').style.display = 'none';
+                    document.getElementById('welcome-message').textContent = `مرحباً ${user.displayName}`;
+                    document.getElementById('map-city').classList.remove('hidden');
+                    document.getElementById('map-war').classList.remove('hidden');
+                    document.getElementById('map-zombie').classList.remove('hidden');
+                    document.getElementById('map-future').classList.remove('hidden');
+                    document.getElementById('code-entry').classList.remove('hidden');
+                })
+                .catch((error) => {
+                    console.log(error.message);
+                });
         });
 
         // إرسال الكود (افتراضيًا يتم إرساله إلى البريد الإلكتروني)
