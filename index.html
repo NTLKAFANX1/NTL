@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>التسجيل والدخول</title>
     <style>
-        /* تنسيق عام */
         body {
             background-color: #0d0d0d;
             color: white;
@@ -31,20 +30,17 @@
             color: white;
             font-weight: bold;
         }
-        .user-info {
-            display: flex;
-            gap: 10px;
-        }
 
-        /* نموذج تسجيل الدخول */
-        .login-box {
+        .login-box, .signup-box, .game-selection, .script-upload-box, .script-view-box {
+            display: none;
             background: #1a1a1a;
             padding: 20px;
             border-radius: 8px;
             width: 300px;
             margin: 30px auto;
         }
-        .login-box input {
+
+        .login-box input, .signup-box input, .script-upload-box input, .script-upload-box textarea {
             width: 90%;
             padding: 10px;
             margin: 10px 0;
@@ -53,7 +49,7 @@
             background: #333;
             color: white;
         }
-        .login-box button {
+        .login-box button, .signup-box button, .script-upload-box button {
             background: #007bff;
             color: white;
             padding: 10px;
@@ -63,49 +59,19 @@
             cursor: pointer;
             font-size: 16px;
         }
-        .login-box button:hover {
+        .login-box button:hover, .signup-box button:hover, .script-upload-box button:hover {
             background: #0056b3;
         }
-
-        /* نموذج إنشاء الحساب */
-        .signup-box {
-            background: #1a1a1a;
-            padding: 20px;
-            border-radius: 8px;
-            width: 300px;
-            margin: 30px auto;
-        }
-        .signup-box input {
-            width: 90%;
-            padding: 10px;
-            margin: 10px 0;
-            border: none;
-            border-radius: 5px;
-            background: #333;
-            color: white;
-        }
-        .signup-box button {
-            background: #28a745;
+        .game-selection button {
+            background: #007bff;
             color: white;
             padding: 10px;
             border: none;
-            width: 100%;
+            width: 200px;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 16px;
-        }
-        .signup-box button:hover {
-            background: #218838;
         }
 
-        /* رسالة الخطأ */
-        .error-message {
-            color: red;
-            font-size: 14px;
-            margin-top: 10px;
-        }
-
-        /* زر العودة لتسجيل الدخول */
         .back-to-login {
             background: #17a2b8;
             color: white;
@@ -117,11 +83,7 @@
             font-size: 16px;
             margin-top: 10px;
         }
-        .back-to-login:hover {
-            background: #138496;
-        }
 
-        /* تعديل على زر "إنشاء حساب" */
         .create-account-btn {
             background: none;
             color: #007bff;
@@ -132,6 +94,48 @@
             padding: 5px 0;
             margin-top: 20px;
             text-align: right;
+        }
+
+        .add-script-btn {
+            background-color: #007bff;
+            color: white;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 15px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .script-view-box img {
+            width: 100px;
+            height: 100px;
+            border-radius: 8px;
+        }
+
+        .copy-btn {
+            background-color: #28a745;
+            color: white;
+            padding: 10px;
+            border: none;
+            width: 100%;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .cancel-btn, .publish-btn {
+            background-color: #dc3545;
+            color: white;
+            padding: 10px;
+            border: none;
+            width: 100%;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .cancel-btn:hover, .publish-btn:hover {
+            background-color: #c82333;
         }
     </style>
 </head>
@@ -145,11 +149,6 @@
                 <li><a href="#">محل الأعضاء</a></li>
                 <li><a href="#">البحث</a></li>
             </ul>
-            <div class="user-info">
-                <span id="welcome-message">مرحباً</span>
-                <a href="#">🔔</a>
-                <a href="#">⚙️</a>
-            </div>
         </nav>
     </header>
 
@@ -166,7 +165,7 @@
     </div>
 
     <!-- نموذج إنشاء الحساب -->
-    <div class="signup-box" id="signup-box" style="display:none;">
+    <div class="signup-box" id="signup-box">
         <h2>إنشاء حساب جديد</h2>
         <form id="signup-form">
             <input type="text" id="signup-username" placeholder="اسم المستخدم" required>
@@ -178,23 +177,53 @@
         </form>
     </div>
 
-    <script>
-        // تخزين بيانات المستخدم في الذاكرة
-        let usersDatabase = [];
+    <!-- اختيار اللعبة -->
+    <div class="game-selection" id="game-selection">
+        <h2>يرجى اختيار اللعبة</h2>
+        <button onclick="showScriptUploadForm()">Counter Strike</button>
+    </div>
 
-        // عرض نموذج إنشاء الحساب
+    <!-- نموذج رفع السكربت -->
+    <div class="script-upload-box" id="script-upload-box">
+        <h2>تحميل سكربت جديد</h2>
+        <form id="script-upload-form">
+            <input type="text" id="script-name" placeholder="اسم السكربت" required>
+            <input type="file" id="script-image" accept="image/*" required>
+            <textarea id="script-description" placeholder="وصف السكربت" required></textarea>
+            <textarea id="script-code" placeholder="سكربت هنا" required></textarea>
+            <button type="button" class="cancel-btn" onclick="cancelUpload()">إلغاء</button>
+            <button type="submit" class="publish-btn">نشر</button>
+        </form>
+    </div>
+
+    <!-- عرض السكربت -->
+    <div class="script-view-box" id="script-view-box" style="display: none;">
+        <h2>السكربت المنشور</h2>
+        <img id="script-image-view" src="" alt="صورة السكربت">
+        <p><strong>التاريخ:</strong> <span id="publish-date"></span></p>
+        <p><strong>الاسم:</strong> <span id="script-name-view"></span></p>
+        <p><strong>الوصف:</strong> <span id="script-description-view"></span></p>
+        <button class="copy-btn" onclick="copyScriptCode()">نسخ السكربت</button>
+        <p><strong>السكربت:</strong></p>
+        <pre id="script-code-view"></pre>
+    </div>
+
+    <button class="add-script-btn" onclick="showScriptUploadForm()">+</button>
+
+    <script>
+        let usersDatabase = [];
+        let scriptsDatabase = [];
+
         function showSignupForm() {
             document.getElementById('login-box').style.display = 'none';
             document.getElementById('signup-box').style.display = 'block';
         }
 
-        // عرض نموذج تسجيل الدخول
         function showLoginForm() {
             document.getElementById('signup-box').style.display = 'none';
             document.getElementById('login-box').style.display = 'block';
         }
 
-        // تسجيل الدخول
         document.getElementById('login-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const username = document.getElementById('login-username').value;
@@ -204,20 +233,19 @@
             if (user) {
                 document.getElementById('login-error-message').textContent = '';
                 alert('تم تسجيل الدخول بنجاح');
-                // يمكنك توجيه المستخدم إلى الصفحة الرئيسية هنا
+                document.getElementById('login-box').style.display = 'none';
+                document.getElementById('game-selection').style.display = 'block';
             } else {
                 document.getElementById('login-error-message').textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة';
             }
         });
 
-        // إنشاء حساب جديد
         document.getElementById('signup-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const username = document.getElementById('signup-username').value;
             const password = document.getElementById('signup-password').value;
             const confirmPassword = document.getElementById('signup-confirm-password').value;
 
-            // التحقق من صحة البيانات
             if (password !== confirmPassword) {
                 document.getElementById('signup-error-message').textContent = 'كلمة المرور وتأكيد كلمة المرور غير متطابقين';
                 return;
@@ -229,14 +257,59 @@
                 return;
             }
 
-            // إضافة المستخدم إلى "قاعدة البيانات" (في هذه الحالة، الذاكرة)
             usersDatabase.push({ username, password });
             document.getElementById('signup-error-message').textContent = '';
             alert('تم إنشاء الحساب بنجاح');
-
-            // إخفاء نموذج إنشاء الحساب وعرض نموذج تسجيل الدخول بعد التسجيل
-            showLoginForm();  
+            showLoginForm();
         });
+
+        function showScriptUploadForm() {
+            document.getElementById('game-selection').style.display = 'none';
+            document.getElementById('script-upload-box').style.display = 'block';
+        }
+
+        function cancelUpload() {
+            document.getElementById('script-upload-box').style.display = 'none';
+            document.getElementById('game-selection').style.display = 'block';
+        }
+
+        document.getElementById('script-upload-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const scriptName = document.getElementById('script-name').value;
+            const scriptImage = document.getElementById('script-image').files[0];
+            const scriptDescription = document.getElementById('script-description').value;
+            const scriptCode = document.getElementById('script-code').value;
+
+            const newScript = {
+                name: scriptName,
+                image: URL.createObjectURL(scriptImage),
+                description: scriptDescription,
+                code: scriptCode,
+                date: new Date().toLocaleString()
+            };
+
+            scriptsDatabase.push(newScript);
+            document.getElementById('script-upload-box').style.display = 'none';
+            document.getElementById('game-selection').style.display = 'block';
+        });
+
+        function showScriptView(script) {
+            document.getElementById('script-name-view').textContent = script.name;
+            document.getElementById('script-image-view').src = script.image;
+            document.getElementById('script-description-view').textContent = script.description;
+            document.getElementById('script-code-view').textContent = script.code;
+            document.getElementById('publish-date').textContent = script.date;
+
+            document.getElementById('script-view-box').style.display = 'block';
+        }
+
+        function copyScriptCode() {
+            const code = document.getElementById('script-code-view').textContent;
+            navigator.clipboard.writeText(code);
+            alert('تم نسخ السكربت');
+        }
     </script>
+
 </body>
 </html>
