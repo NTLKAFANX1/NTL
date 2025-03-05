@@ -233,7 +233,9 @@
             usersDatabase.push({ username, password });
             document.getElementById('signup-error-message').textContent = '';
             alert('تم إنشاء الحساب بنجاح');
-            showLoginForm();  // العودة إلى نموذج تسجيل الدخول بعد إنشاء الحساب
+
+            // إخفاء نموذج إنشاء الحساب وعرض نموذج تسجيل الدخول بعد التسجيل
+            showLoginForm();  
         });
     </script>
 </body>
