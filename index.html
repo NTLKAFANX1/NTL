@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Elites Forum</title>
     <style>
-        /* تنسيق الموقع */
+        /* تنسيق عام */
         body {
             background-color: #0d0d0d;
             color: white;
@@ -35,42 +35,74 @@
             display: flex;
             gap: 10px;
         }
+
+        /* صندوق تسجيل الدخول */
+        .login-box {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 8px;
+            width: 300px;
+            margin: 30px auto;
+        }
+        .login-box input {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            background: #333;
+            color: white;
+        }
+        .login-box button {
+            background: #007bff;
+            color: white;
+            padding: 10px;
+            border: none;
+            width: 100%;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .login-box button:hover {
+            background: #0056b3;
+        }
+
+        /* صندوق اختيار الماب */
         .announcements {
             background: #222;
-            padding: 10px;
+            padding: 20px;
             margin-top: 20px;
             border-radius: 8px;
+            width: 50%;
+            margin-left: auto;
+            margin-right: auto;
         }
         .announcements h3 {
             color: #00aaff;
         }
-        .announcements ul {
-            list-style: none;
-            padding: 0;
-        }
-        .announcements a {
+        .map-button {
+            display: block;
+            width: 50%;
+            margin: 10px auto;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
             text-decoration: none;
             color: white;
-            display: block;
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 5px;
-            font-weight: bold;
         }
-        .announcements a:first-child {
-            background: #007bff; /* زر أزرق */
-        }
-        .announcements a:nth-child(2) {
-            background: #cc0000; /* زر أحمر */
-        }
-        .announcements a:nth-child(3) {
-            background: #008000; /* زر أخضر */
-        }
-        .announcements a:nth-child(4) {
-            background: #ffaa00; /* زر برتقالي */
-        }
-        .announcements a:hover {
-            opacity: 0.8;
+        /* ألوان الأزرار */
+        .map-button:nth-child(1) { background: linear-gradient(135deg, #007bff, #0056b3); }
+        .map-button:nth-child(2) { background: linear-gradient(135deg, #ff4d4d, #b30000); }
+        .map-button:nth-child(3) { background: linear-gradient(135deg, #28a745, #006400); }
+        .map-button:nth-child(4) { background: linear-gradient(135deg, #ffa500, #cc8400); }
+
+        .map-button:hover {
+            transform: scale(1.05);
+            opacity: 0.9;
         }
     </style>
 </head>
@@ -92,19 +124,27 @@
         </nav>
     </header>
 
-    <main>
-        <h1>ELITES</h1>
+    <!-- نموذج تسجيل الدخول -->
+    <div class="login-box">
+        <h2>تسجيل الدخول</h2>
+        <form>
+            <input type="email" placeholder="البريد الإلكتروني" required>
+            <input type="password" placeholder="كلمة المرور" required>
+            <div class="cf-turnstile" data-sitekey="YOUR_CLOUDFLARE_TURNSTILE_KEY"></div>
+            <button type="submit">تسجيل الدخول</button>
+        </form>
+    </div>
 
-        <aside class="announcements">
-            <h3>يرجى اختيار الماب</h3>
-            <ul>
-                <li><a href="#">ماب المدينة</a></li>
-                <li><a href="#">ماب الحرب</a></li>
-                <li><a href="#">ماب الزومبي</a></li>
-                <li><a href="#">ماب المستقبل</a></li>
-            </ul>
-        </aside>
-    </main>
+    <!-- اختيار الماب -->
+    <aside class="announcements">
+        <h3>يرجى اختيار الماب</h3>
+        <a href="#" class="map-button">ماب المدينة</a>
+        <a href="#" class="map-button">ماب الحرب</a>
+        <a href="#" class="map-button">ماب الزومبي</a>
+        <a href="#" class="map-button">ماب المستقبل</a>
+    </aside>
+
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 </body>
 </html>
