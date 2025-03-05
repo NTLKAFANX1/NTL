@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elites Forum</title>
+    <title>التسجيل والدخول</title>
     <style>
         /* تنسيق عام */
         body {
@@ -36,7 +36,7 @@
             gap: 10px;
         }
 
-        /* صندوق تسجيل الدخول */
+        /* نموذج تسجيل الدخول */
         .login-box {
             background: #1a1a1a;
             padding: 20px;
@@ -67,47 +67,35 @@
             background: #0056b3;
         }
 
-        /* صندوق اختيار الماب */
-        .announcements {
-            background: #222;
+        /* نموذج إنشاء الحساب */
+        .signup-box {
+            background: #1a1a1a;
             padding: 20px;
-            margin-top: 20px;
             border-radius: 8px;
-            width: 50%;
-            margin-left: auto;
-            margin-right: auto;
+            width: 300px;
+            margin: 30px auto;
         }
-        .announcements h3 {
-            color: #00aaff;
-        }
-        .map-button {
-            display: block;
-            width: 50%;
-            margin: 10px auto;
-            padding: 15px;
-            font-size: 18px;
-            font-weight: bold;
+        .signup-box input {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
             border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease-in-out;
-            text-decoration: none;
+            border-radius: 5px;
+            background: #333;
             color: white;
         }
-        /* ألوان الأزرار */
-        .map-button:nth-child(1) { background: linear-gradient(135deg, #007bff, #0056b3); }
-        .map-button:nth-child(2) { background: linear-gradient(135deg, #ff4d4d, #b30000); }
-        .map-button:nth-child(3) { background: linear-gradient(135deg, #28a745, #006400); }
-        .map-button:nth-child(4) { background: linear-gradient(135deg, #ffa500, #cc8400); }
-
-        .map-button:hover {
-            transform: scale(1.05);
-            opacity: 0.9;
+        .signup-box button {
+            background: #28a745;
+            color: white;
+            padding: 10px;
+            border: none;
+            width: 100%;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
         }
-
-        /* إخفاء الأزرار */
-        .hidden {
-            display: none;
+        .signup-box button:hover {
+            background: #218838;
         }
 
         /* رسالة الخطأ */
@@ -116,6 +104,22 @@
             font-size: 14px;
             margin-top: 10px;
         }
+
+        /* زر العودة لتسجيل الدخول */
+        .back-to-login {
+            background: #17a2b8;
+            color: white;
+            padding: 10px;
+            border: none;
+            width: 100%;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .back-to-login:hover {
+            background: #138496;
+        }
     </style>
 </head>
 <body>
@@ -123,13 +127,13 @@
     <header>
         <nav>
             <ul>
-                <li><a href="#">Forums</a></li>
-                <li><a href="#">Store</a></li>
-                <li><a href="#">Members Shop</a></li>
-                <li><a href="#">Search</a></li>
+                <li><a href="#">منتديات</a></li>
+                <li><a href="#">المتجر</a></li>
+                <li><a href="#">محل الأعضاء</a></li>
+                <li><a href="#">البحث</a></li>
             </ul>
             <div class="user-info">
-                <span id="welcome-message">مرحباً محمد</span>
+                <span id="welcome-message">مرحباً</span>
                 <a href="#">🔔</a>
                 <a href="#">⚙️</a>
             </div>
@@ -140,119 +144,84 @@
     <div class="login-box" id="login-box">
         <h2>تسجيل الدخول</h2>
         <form id="login-form">
-            <input type="email" id="email" placeholder="البريد الإلكتروني" required>
-            <input type="password" id="password" placeholder="كلمة المرور" required>
-            <div class="cf-turnstile" data-sitekey="YOUR_CLOUDFLARE_TURNSTILE_KEY"></div>
+            <input type="text" id="login-username" placeholder="اسم المستخدم" required>
+            <input type="password" id="login-password" placeholder="كلمة المرور" required>
             <button type="submit">تسجيل الدخول</button>
-            <p class="error-message" id="error-message"></p>
+            <button type="button" onclick="showSignupForm()">إنشاء حساب</button>
+            <p class="error-message" id="login-error-message"></p>
         </form>
-        <!-- إضافة زر تسجيل الدخول بواسطة Google -->
-        <button id="google-sign-in">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google Logo" style="width: 20px; vertical-align: middle;"> 
-            تسجيل الدخول بواسطة Google
-        </button>
     </div>
 
-    <!-- واجهة إدخال الكود بعد اختيار حساب Google -->
-    <div id="code-entry" class="hidden">
-        <h2>يرجى كتابة الكود</h2>
-        <input type="text" id="code" placeholder="أدخل الكود هنا" required>
-        <button id="submit-code">إرسال الكود</button>
+    <!-- نموذج إنشاء الحساب -->
+    <div class="signup-box" id="signup-box" style="display:none;">
+        <h2>إنشاء حساب جديد</h2>
+        <form id="signup-form">
+            <input type="text" id="signup-username" placeholder="اسم المستخدم" required>
+            <input type="password" id="signup-password" placeholder="كلمة المرور" required>
+            <input type="password" id="signup-confirm-password" placeholder="تأكيد كلمة المرور" required>
+            <button type="submit">إنشاء الحساب</button>
+            <button type="button" class="back-to-login" onclick="showLoginForm()">العودة إلى تسجيل الدخول</button>
+            <p class="error-message" id="signup-error-message"></p>
+        </form>
     </div>
-
-    <!-- اختيار الماب -->
-    <aside class="announcements">
-        <h3>يرجى اختيار الماب</h3>
-        <a href="#" class="map-button hidden" id="map-city">ماب المدينة</a>
-        <a href="#" class="map-button hidden" id="map-war">ماب الحرب</a>
-        <a href="#" class="map-button hidden" id="map-zombie">ماب الزومبي</a>
-        <a href="#" class="map-button hidden" id="map-future">ماب المستقبل</a>
-    </aside>
-
-    <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js"></script>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
     <script>
-        // تكوين Firebase
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
+        // تخزين بيانات المستخدم في الذاكرة
+        let usersDatabase = [];
 
-        // تهيئة Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const provider = new firebase.auth.GoogleAuthProvider();
+        // عرض نموذج إنشاء الحساب
+        function showSignupForm() {
+            document.getElementById('login-box').style.display = 'none';
+            document.getElementById('signup-box').style.display = 'block';
+        }
 
-        // تسجيل الدخول باستخدام البريد الإلكتروني وكلمة المرور
-        document.getElementById('login-form').addEventListener('submit', (e) => {
+        // عرض نموذج تسجيل الدخول
+        function showLoginForm() {
+            document.getElementById('signup-box').style.display = 'none';
+            document.getElementById('login-box').style.display = 'block';
+        }
+
+        // تسجيل الدخول
+        document.getElementById('login-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
 
-            // التحقق من البريد الإلكتروني وكلمة المرور
-            if (!email || !password) {
-                document.getElementById('error-message').textContent = 'يرجى إدخال البريد الإلكتروني وكلمة المرور';
+            const user = usersDatabase.find(user => user.username === username && user.password === password);
+            if (user) {
+                document.getElementById('login-error-message').textContent = '';
+                alert('تم تسجيل الدخول بنجاح');
+                // يمكنك توجيه المستخدم إلى الصفحة الرئيسية هنا
+            } else {
+                document.getElementById('login-error-message').textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة';
+            }
+        });
+
+        // إنشاء حساب جديد
+        document.getElementById('signup-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('signup-username').value;
+            const password = document.getElementById('signup-password').value;
+            const confirmPassword = document.getElementById('signup-confirm-password').value;
+
+            // التحقق من صحة البيانات
+            if (password !== confirmPassword) {
+                document.getElementById('signup-error-message').textContent = 'كلمة المرور وتأكيد كلمة المرور غير متطابقين';
                 return;
             }
 
-            auth.signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    document.getElementById('login-box').style.display = 'none';
-                    document.getElementById('welcome-message').textContent = `مرحباً ${user.displayName}`;
-                    document.getElementById('map-city').classList.remove('hidden');
-                    document.getElementById('map-war').classList.remove('hidden');
-                    document.getElementById('map-zombie').classList.remove('hidden');
-                    document.getElementById('map-future').classList.remove('hidden');
-                    document.getElementById('code-entry').classList.remove('hidden');
-                    document.getElementById('error-message').textContent = ''; // إخفاء رسالة الخطأ عند النجاح
-                })
-                .catch((error) => {
-                    const errorMessage = error.message;
-                    if (errorMessage.includes('user-not-found')) {
-                        document.getElementById('error-message').textContent = 'البريد الإلكتروني غير مسجل';
-                    } else if (errorMessage.includes('wrong-password')) {
-                        document.getElementById('error-message').textContent = 'كلمة المرور خاطئة';
-                    } else {
-                        document.getElementById('error-message').textContent = `خطأ: ${errorMessage}`;
-                    }
-                });
-        });
-
-        // تسجيل الدخول بواسطة Google
-        document.getElementById('google-sign-in').addEventListener('click', () => {
-            auth.signInWithPopup(provider)
-                .then((result) => {
-                    const user = result.user;
-                    document.getElementById('login-box').style.display = 'none';
-                    document.getElementById('welcome-message').textContent = `مرحباً ${user.displayName}`;
-                    document.getElementById('map-city').classList.remove('hidden');
-                    document.getElementById('map-war').classList.remove('hidden');
-                    document.getElementById('map-zombie').classList.remove('hidden');
-                    document.getElementById('map-future').classList.remove('hidden');
-                    document.getElementById('code-entry').classList.remove('hidden');
-                })
-                .catch((error) => {
-                    document.getElementById('error-message').textContent = `خطأ: ${error.message}`;
-                });
-        });
-
-        // إرسال الكود (افتراضيًا يتم إرساله إلى البريد الإلكتروني)
-        document.getElementById('submit-code').addEventListener('click', () => {
-            const code = document.getElementById('code').value;
-            const user = auth.currentUser;
-            if (user) {
-                // إرسال الكود إلى البريد الإلكتروني
-                const mailto = `mailto:${user.email}?subject=كود التأكيد&body=${code}`;
-                window.location.href = mailto;
+            const existingUser = usersDatabase.find(user => user.username === username);
+            if (existingUser) {
+                document.getElementById('signup-error-message').textContent = 'اسم المستخدم موجود بالفعل';
+                return;
             }
+
+            // إضافة المستخدم إلى "قاعدة البيانات" (في هذه الحالة، الذاكرة)
+            usersDatabase.push({ username, password });
+            document.getElementById('signup-error-message').textContent = '';
+            alert('تم إنشاء الحساب بنجاح');
+            showLoginForm();  // العودة إلى نموذج تسجيل الدخول بعد إنشاء الحساب
         });
     </script>
 </body>
-</html>
+        </html>
