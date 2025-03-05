@@ -205,9 +205,9 @@
                     document.getElementById('map-zombie').classList.remove('hidden');
                     document.getElementById('map-future').classList.remove('hidden');
                     document.getElementById('code-entry').classList.remove('hidden');
+                    document.getElementById('error-message').textContent = ''; // إخفاء رسالة الخطأ عند النجاح
                 })
                 .catch((error) => {
-                    const errorCode = error.code;
                     const errorMessage = error.message;
                     document.getElementById('error-message').textContent = `خطأ: ${errorMessage}`;
                 });
@@ -227,7 +227,7 @@
                     document.getElementById('code-entry').classList.remove('hidden');
                 })
                 .catch((error) => {
-                    console.log(error.message);
+                    document.getElementById('error-message').textContent = `خطأ: ${error.message}`;
                 });
         });
 
