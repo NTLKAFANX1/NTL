@@ -284,6 +284,36 @@
             document.getElementById('script-upload-box').style.display = 'none';
             document.getElementById('game-selection').style.display = 'block';
         }
-    </script>
-</body>
-</html>
+
+        // نشر السكربت وعرضه
+        document.getElementById('script-upload-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const scriptName = document.getElementById('script-name').value;
+            const scriptDescription = document.getElementById('script-description').value;
+            const scriptCode = document.getElementById('script-code').value;
+            const scriptImage = document.getElementById('script-image').files[0];
+
+            if (!scriptName || !scriptDescription || !scriptCode || !scriptImage) {
+                alert('يرجى ملء جميع الحقول');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                document.getElementById('script-image-view').src = event.target.result;
+                document.getElementById('script-name-view').textContent = scriptName;
+                document.getElementById('publish-date').textContent = new Date().toLocaleDateString();
+                document.getElementById('script-description-view').textContent = scriptDescription;
+                document.getElementById('script-code-view').textContent = scriptCode;
+
+                document.getElementById('script-upload-box').style.display = 'none';
+                document.getElementById('script-view-box').style.display = 'block';
+            };
+            reader.readAsDataURL(scriptImage);
+        });
+
+        function copyScriptCode() {
+            const scriptCode = document.getElementById('script-code-view').textContent;
+            navigator.clipboard.writeText(scriptCode)
+                .then(() => {
