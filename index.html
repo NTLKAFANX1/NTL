@@ -195,6 +195,12 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
 
+            // التحقق من البريد الإلكتروني وكلمة المرور
+            if (!email || !password) {
+                document.getElementById('error-message').textContent = 'يرجى إدخال البريد الإلكتروني وكلمة المرور';
+                return;
+            }
+
             auth.signInWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
@@ -209,7 +215,13 @@
                 })
                 .catch((error) => {
                     const errorMessage = error.message;
-                    document.getElementById('error-message').textContent = `خطأ: ${errorMessage}`;
+                    if (errorMessage.includes('user-not-found')) {
+                        document.getElementById('error-message').textContent = 'البريد الإلكتروني غير مسجل';
+                    } else if (errorMessage.includes('wrong-password')) {
+                        document.getElementById('error-message').textContent = 'كلمة المرور خاطئة';
+                    } else {
+                        document.getElementById('error-message').textContent = `خطأ: ${errorMessage}`;
+                    }
                 });
         });
 
