@@ -106,6 +106,7 @@
             border-radius: 50%;
             font-size: 20px;
             cursor: pointer;
+            display: none; /* Hide by default */
         }
 
         .script-view-box img {
@@ -180,7 +181,7 @@
     <!-- اختيار اللعبة -->
     <div class="game-selection" id="game-selection">
         <h2>يرجى اختيار اللعبة</h2>
-        <button onclick="showScriptUploadForm()">Counter Strike</button>
+        <button onclick="showCounterStrike()">Counter Strike</button>
     </div>
 
     <!-- نموذج رفع السكربت -->
@@ -208,11 +209,12 @@
         <pre id="script-code-view"></pre>
     </div>
 
-    <button class="add-script-btn" onclick="showScriptUploadForm()">+</button>
+    <button class="add-script-btn" id="add-script-btn" onclick="showScriptUploadForm()">+</button>
 
     <script>
         let usersDatabase = [];
         let scriptsDatabase = [];
+        let isLoggedIn = false;
 
         function showSignupForm() {
             document.getElementById('login-box').style.display = 'none';
@@ -235,6 +237,7 @@
                 alert('تم تسجيل الدخول بنجاح');
                 document.getElementById('login-box').style.display = 'none';
                 document.getElementById('game-selection').style.display = 'block';
+                isLoggedIn = true;
             } else {
                 document.getElementById('login-error-message').textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة';
             }
@@ -263,8 +266,15 @@
             showLoginForm();
         });
 
+        function showCounterStrike() {
+            if (isLoggedIn) {
+                document.getElementById('game-selection').style.display = 'none';
+                document.getElementById('add-script-btn').style.display = 'block'; // Show "+" button
+            }
+        }
+
         function showScriptUploadForm() {
-            document.getElementById('game-selection').style.display = 'none';
+            document.getElementById('add-script-btn').style.display = 'none'; // Hide "+" button
             document.getElementById('script-upload-box').style.display = 'block';
         }
 
@@ -298,18 +308,4 @@
             document.getElementById('script-name-view').textContent = script.name;
             document.getElementById('script-image-view').src = script.image;
             document.getElementById('script-description-view').textContent = script.description;
-            document.getElementById('script-code-view').textContent = script.code;
-            document.getElementById('publish-date').textContent = script.date;
-
-            document.getElementById('script-view-box').style.display = 'block';
-        }
-
-        function copyScriptCode() {
-            const code = document.getElementById('script-code-view').textContent;
-            navigator.clipboard.writeText(code);
-            alert('تم نسخ السكربت');
-        }
-    </script>
-
-</body>
-</html>
+            document.getElementById('script-code
