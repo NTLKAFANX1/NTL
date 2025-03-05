@@ -104,6 +104,11 @@
             transform: scale(1.05);
             opacity: 0.9;
         }
+
+        /* إخفاء الأزرار */
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -117,7 +122,7 @@
                 <li><a href="#">Search</a></li>
             </ul>
             <div class="user-info">
-                <span>Welcome Mohamed</span>
+                <span id="welcome-message">مرحباً محمد</span>
                 <a href="#">🔔</a>
                 <a href="#">⚙️</a>
             </div>
@@ -125,26 +130,83 @@
     </header>
 
     <!-- نموذج تسجيل الدخول -->
-    <div class="login-box">
+    <div class="login-box" id="login-box">
         <h2>تسجيل الدخول</h2>
-        <form>
-            <input type="email" placeholder="البريد الإلكتروني" required>
+        <form id="login-form">
+            <input type="email" id="email" placeholder="البريد الإلكتروني" required>
             <input type="password" placeholder="كلمة المرور" required>
             <div class="cf-turnstile" data-sitekey="YOUR_CLOUDFLARE_TURNSTILE_KEY"></div>
             <button type="submit">تسجيل الدخول</button>
         </form>
+        <!-- إضافة زر تسجيل الدخول بواسطة Google -->
+        <button id="google-sign-in">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google Logo" style="width: 20px; vertical-align: middle;"> 
+            تسجيل الدخول بواسطة Google
+        </button>
+    </div>
+
+    <!-- واجهة إدخال الكود بعد اختيار حساب Google -->
+    <div id="code-entry" class="hidden">
+        <h2>يرجى كتابة الكود</h2>
+        <input type="text" id="code" placeholder="أدخل الكود هنا" required>
+        <button id="submit-code">إرسال الكود</button>
     </div>
 
     <!-- اختيار الماب -->
     <aside class="announcements">
         <h3>يرجى اختيار الماب</h3>
-        <a href="#" class="map-button">ماب المدينة</a>
-        <a href="#" class="map-button">ماب الحرب</a>
-        <a href="#" class="map-button">ماب الزومبي</a>
-        <a href="#" class="map-button">ماب المستقبل</a>
+        <a href="#" class="map-button hidden" id="map-city">ماب المدينة</a>
+        <a href="#" class="map-button hidden" id="map-war">ماب الحرب</a>
+        <a href="#" class="map-button hidden" id="map-zombie">ماب الزومبي</a>
+        <a href="#" class="map-button hidden" id="map-future">ماب المستقبل</a>
     </aside>
 
+    <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
+    <script>
+        // تكوين Firebase
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // تهيئة Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const provider = new firebase.auth.GoogleAuthProvider();
+
+        // تسجيل الدخول بواسطة Google
+        document.getElementById('google-sign-in').addEventListener('click', () => {
+            auth.signInWithPopup(provider).then((result) => {
+                const user = result.user;
+                document.getElementById('login-box').style.display = 'none';
+                document.getElementById('welcome-message').textContent = `مرحباً ${user.displayName}`;
+                document.getElementById('map-city').classList.remove('hidden');
+                document.getElementById('map-war').classList.remove('hidden');
+                document.getElementById('map-zombie').classList.remove('hidden');
+                document.getElementById('map-future').classList.remove('hidden');
+                document.getElementById('code-entry').classList.remove('hidden');
+            }).catch((error) => {
+                console.log(error.message);
+            });
+        });
+
+        // إرسال الكود (افتراضيًا يتم إرساله إلى البريد الإلكتروني)
+        document.getElementById('submit-code').addEventListener('click', () => {
+            const code = document.getElementById('code').value;
+            const user = auth.currentUser;
+            if (user) {
+                // إرسال الكود إلى البريد الإلكتروني
+                const mailto = `mailto:${user.email}?subject=كود التأكيد&body=${code}`;
+                window.location.href = mailto;
+            }
+        });
+    </script>
 </body>
 </html>
