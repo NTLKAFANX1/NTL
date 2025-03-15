@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>موقع سكس سفيان</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            text-align: center;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        h1 {
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 24px;
+        }
+
+        iframe {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 600px;
+            height: 166px;
+        }
+    </style>
+</head>
+<body>
+    <h1>سفيان ب كس عريان</h1>
+    <p>يسطا عمال اقولك سفيان بكس عريان</p>
+
+    <!-- SoundCloud Player Embed with Autoplay -->
+    <iframe width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=https://on.soundcloud.com/HjmnDX8L29tS5SRE7&color=ff5500&auto_play=true"></iframe>
+</body>
+</html>
