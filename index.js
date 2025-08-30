@@ -1,88 +1,252 @@
-<!DOCTYPE html>
-<html lang="ar">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>موقع سكس سفيان</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: black;
-            color: white;
-            text-align: center;
-            height: 100vh;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            overflow: hidden;
-        }
+require('dotenv').config();
+const { 
+  Client, GatewayIntentBits, Partials, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, PermissionsBitField, ChannelType, SlashCommandBuilder, REST, Routes 
+} = require('discord.js');
 
-        h1 {
-            font-size: 40px;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 10px rgba(255, 0, 0, 0.8);
-        }
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessageReactions,
+  ],
+  partials: [Partials.Message, Partials.Channel, Partials.Reaction],
+});
 
-        p {
-            font-size: 18px;
-            margin: 20px 0;
-            line-height: 1.6;
-            text-align: justify;
-            padding: 0 10px;
-        }
+// إعداد أمر السلاش "تسطيب" مع تحديد رتبة الدعم الفني مباشرة
+const commands = [
+  new SlashCommandBuilder()
+    .setName('تسطيب')
+    .setDescription('إنشاء ايمبد تكتات مخصص')
+    .addChannelOption(option => option
+      .setName('room')
+      .setDescription('الغرفة التي سيتم إرسال الايمبد فيها')
+      .setRequired(true))
+    .addStringOption(option => option
+      .setName('title')
+      .setDescription('عنوان الايمبد')
+      .setRequired(true))
+    .addStringOption(option => option
+      .setName('desc')
+      .setDescription('وصف الايمبد')
+      .setRequired(true))
+    .addStringOption(option => option
+      .setName('image')
+      .setDescription('رابط صورة (اختياري)')
+      .setRequired(false))
+    .addStringOption(option => option
+      .setName('buttons')
+      .setDescription('أسماء الأزرار بالشريط (افصل كل واحد ب / مثل: دعم فني/شراء)')
+      .setRequired(true))
+    .addChannelOption(option => option
+      .setName('category')
+      .setDescription('الكاتاجوري الذي فيه غرف التكتات')
+      .setRequired(true))
+    .addRoleOption(option => option
+      .setName('support')
+      .setDescription('رتبة الدعم الفني')
+      .setRequired(true))
+    .toJSON()
+];
 
-        iframe {
-            margin-top: 20px;
-            width: 100%;
-            max-width: 600px;
-            height: 166px;
-            border: none;
-        }
+client.once('ready', async () => {
+  console.log(`✅ Logged in as ${client.user.tag}`);
 
-        .content {
-            width: 100%;
-            max-width: 800px;
-            text-align: justify;
-            margin-top: 40px;
-            padding: 20px;
-            background-color: rgba(0, 0, 0, 0.7);
-            border-radius: 10px;
-            overflow-y: scroll;
-            max-height: 60vh;
-            font-size: 16px;
-            line-height: 1.8;
-        }
+  const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
-        .content p {
-            margin-bottom: 20px;
-        }
-    </style>
-</head>
-<body>
-    <h1>سفيان ب كس عريان</h1>
-    </p> . </p>
+  try {
+    await rest.put(
+      Routes.applicationCommands(client.user.id),
+      { body: commands }
+    );
+    console.log('✅ Slash command uploaded.');
+  } catch (err) {
+    console.error(err);
+  }
+});
 
-    <!-- SoundCloud Player Embed with Autoplay -->
-    <iframe width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=https://on.soundcloud.com/EekentTwbFqqMQjP9&color=ff5500&auto_play=true"></iframe>
+client.on('interactionCreate', async interaction => {
+  if (interaction.isChatInputCommand()) {
+    if (interaction.commandName === 'تسطيب') {
+      const room = interaction.options.getChannel('room');
+      const title = interaction.options.getString('title');
+      const desc = interaction.options.getString('desc');
+      const image = interaction.options.getString('image');
+      const buttonsValue = interaction.options.getString('buttons');
+      const category = interaction.options.getChannel('category');
+      const supportRole = interaction.options.getRole('support');
 
-    <div class="content">
-        <p>كان هناك شاب يُدعى <strong>سفيان</strong>، نشأ في حيٍ فقير مليء بالتحديات. كانت الحياة قاسية عليه منذ صغره، فقد فقد والديه في سن مبكرة، وكان يعيش مع أصدقائه في ظروف صعبة. كان يعاني من ضغوط مالية كبيرة، وبعد أن ترك المدرسة بسبب الحاجة الماسة للعمل، بدأ يبحث عن أي وسيلة لكسب المال. في البداية، بدا له أن الحياة لا تترك له خيارًا آخر، فاختار طريقًا مظلمًا لم يكن يعلم عواقبه.</p>
+      // حفظ إعدادات التكت في الذاكرة
+      client.ticketConfig = {
+        categoryId: category.id,
+        supportRoleId: supportRole.id,
+      };
 
-        <p>بدأ سفيان في بيع نفسه. عمل في مجال <strong>الاستغلال الجنسي</strong>، حيث كان يبيع جسده مقابل المال. كان يتعامل مع زبائن يطلبون خدمات حميمية، وكان يحصل على أموال طائلة مقابل ما كان يفعله. في البداية، اعتقد أن هذا هو الحل الأمثل لمشاكله المالية، وأنه بهذه الطريقة سيحقق السعادة والراحة التي كان يفتقدها. لكن شيئًا ما بداخله كان يقول له أن هذا الطريق ليس هو الطريق الصحيح.</p>
+      // شريط الأزرار
+      const buttons = buttonsValue.split('/').map(b => b.trim()).filter(Boolean);
+      const buttonsRow = new ActionRowBuilder();
+      buttons.forEach((btn, i) => {
+        buttonsRow.addComponents(
+          new ButtonBuilder()
+            .setCustomId(`ticket_open_${i}`)
+            .setLabel(btn)
+            .setStyle(ButtonStyle.Primary)
+        );
+      });
 
-        <p>ومع مرور الوقت، بدأ سفيان يشعر بشيء غريب. على الرغم من المال الذي كان يجنيه، كان يشعر بنوع من الفراغ الداخلي. جسده أصبح سلعة تُباع وتشترى، وكان يواجه صراعًا نفسيًا مستمرًا بين ما يفعله وما يشعر به. كانت حياتُه اليومية مليئة بالحزن والندم، وكان يعاني من تدهور روحي وعاطفي. في كل مرة كان ينظر في مرآته، كان يرى شخصًا مختلفًا عن نفسه، شخصًا لا يتعرف عليه، شخصًا أضاع إنسانيته.</p>
+      const embed = new EmbedBuilder()
+        .setTitle(title)
+        .setDescription(desc)
+        .setColor(0x00AE86);
 
-        <p>في يوم من الأيام، وبينما كان عائداً من أحد هذه اللقاءات، شعر بشيء عميق في قلبه. كان يجلس في مكان هادئ، والدموع بدأت تتساقط من عينيه دون أن يعرف السبب. في تلك اللحظة، سأل نفسه: <strong>"ماذا ستفعل هنا؟ هل هذه هي الحياة التي أردتها؟ هل هذا هو ما كنت تبحث عنه؟"</strong> كانت الأسئلة تتردد في رأسه، وكان يشعر أن الوقت قد حان لتغيير كل شيء.</p>
+      if (image) embed.setImage(image);
 
-        <p>كان سفيان يعرف في أعماقه أنه بحاجة إلى التوبة والتغيير. قرر أن يضع حدًا لهذا الطريق المظلم الذي كان يسير فيه. كانت تلك اللحظة هي نقطة التحول في حياته. لكنه كان يدرك أن الطريق لن يكون سهلاً، وأنه سيتعين عليه مواجهة العديد من التحديات، بما في ذلك مواجهة نقص المال والصعوبات التي سيواجهها في البداية. لكنه كان عازمًا على أن يكون أفضل.</p>
+      await room.send({ embeds: [embed], components: [buttonsRow] });
+      await interaction.reply({ content: "✅ تم إرسال الايمبد بنجاح!", ephemeral: true });
 
-        <p>بدأ سفيان في البحث عن طرق شريفة للعيش. بدأ يعمل في وظائف بسيطة مثل <strong>البيع في المتاجر</strong> أو <strong>العمل في المطاعم</strong>. لم يكن المال كثيرًا، لكنه كان يشعر بشيء لم يشعر به من قبل: السلام الداخلي. ومع مرور الوقت، أصبح أكثر فخرًا بنفسه، وأصبح يحترم نفسه أكثر. بدأ يقرأ كتبًا عن <strong>التنمية الذاتية</strong> و <strong>التوبة</strong>، وتعلم أن الحياة ليست فقط عن المال، بل عن القيم والمبادئ. بدأ يشعر أنه يستعيد إنسانيته تدريجيًا.</p>
+      // حفظ أسماء الأزرار لاستعمالها لاحقًا عند فتح التكت
+      client.ticketButtons = buttons;
+    }
+  }
 
-        <p>مرت السنوات، وأصبح سفيان أكثر قوة وثباتًا. بدأ يساعد الآخرين الذين كانوا في نفس وضعه، فكان يشارك تجربته معهم، ويقدم لهم النصائح حول كيفية التغيير. أصبح مرشدًا للآخرين، وساهم في تغيير حياة الكثيرين ممن كانوا يواجهون نفس التحديات. كانت هذه هي السعادة الحقيقية بالنسبة له: أن يساهم في بناء حياة أفضل للآخرين.</p>
+  // عند الضغط على زر فتح التكت
+  if (interaction.isButton()) {
+    // تحقق أن الزر من التكتات
+    if (interaction.customId.startsWith('ticket_open_')) {
+      const btnIdx = parseInt(interaction.customId.split('_')[2]);
+      const btnLabel = client.ticketButtons[btnIdx];
 
-        <p>وفي كل مرة كان يسأل نفسه: <strong>"ماذا ستفعل هنا؟"</strong> كان يجد الجواب في قلبه: <strong>"أعيش لأكون شخصًا أفضل، لأكون من يساعد الآخرين على إيجاد الطريق الصحيح."</strong></p>
-    </div>
-</body>
-</html>
+      const guild = interaction.guild;
+      const category = guild.channels.cache.get(client.ticketConfig.categoryId);
+      const supportRoleId = client.ticketConfig.supportRoleId;
+      const user = interaction.user;
+
+      // تحقق هل يوجد تكت مفتوح لهذا العضو
+      const existing = guild.channels.cache.find(c =>
+        c.parentId === category.id &&
+        c.type === ChannelType.GuildText &&
+        c.topic === `TICKET-${user.id}`
+      );
+      if (existing) {
+        await interaction.reply({ content: `⚠️ لديك بالفعل تكت مفتوح: <#${existing.id}>`, ephemeral: true });
+        return;
+      }
+
+      // إنشاء الغرفة مع صلاحيات مخصصة
+      const channel = await guild.channels.create({
+        name: `ticket-${user.username}`,
+        type: ChannelType.GuildText,
+        parent: category,
+        topic: `TICKET-${user.id}`,
+        permissionOverwrites: [
+          { id: guild.id, deny: [PermissionsBitField.Flags.ViewChannel] },
+          { id: user.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] },
+          { id: supportRoleId, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] },
+        ]
+      });
+
+      // منشن رتبة الدعم الفني
+      await channel.send(`<@&${supportRoleId}>`);
+      
+      // رسالة الترحيب مع أزرار "استلام/غلق"
+      const claimRow = new ActionRowBuilder()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId('ticket_claim')
+            .setLabel('استلام التكت')
+            .setStyle(ButtonStyle.Success),
+          new ButtonBuilder()
+            .setCustomId('ticket_close')
+            .setLabel('غلق التكت')
+            .setStyle(ButtonStyle.Danger)
+        );
+      await channel.send({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle('مرحبا 👋')
+            .setDescription(
+              `مرحبا <@${user.id}>! شكرا لفتح تكت **${btnLabel}**.\nسيتم الرد عليك قريبًا من فريق الدعم الفني.`
+            )
+        ],
+        components: [claimRow]
+      });
+
+      await interaction.reply({ content: `✅ تم فتح تكت جديد: <#${channel.id}>`, ephemeral: true });
+    }
+
+    // استلام التكت
+    else if (interaction.customId === 'ticket_claim') {
+      const channel = interaction.channel;
+      const supportRoleId = client.ticketConfig.supportRoleId;
+      // تحقق أن الضاغط من رتبة الدعم
+      if (!interaction.member.roles.cache.has(supportRoleId)) {
+        await interaction.reply({ content: "❌ فقط أعضاء الدعم يمكنهم استلام التكت.", ephemeral: true });
+        return;
+      }
+      // منع فتح التكت إذا كان المستلم هو نفس فاتح التكت
+      const ticketUserId = channel.topic?.replace('TICKET-', '');
+      if (interaction.user.id === ticketUserId) {
+        await interaction.reply({ content: "❌ لا يمكنك استلام تكت فتحته بنفسك.", ephemeral: true });
+        return;
+      }
+
+      // حفظ المستلم بالتشات
+      channel.ticketClaimedBy = interaction.user.id;
+
+      // تعديل الصلاحيات: فقط المستلم وفاتح التكت يستطيعان الكتابة، باقي الدعم فقط يشاهدون ويعملون threads
+      await channel.permissionOverwrites.edit(supportRoleId, {
+        ViewChannel: true,
+        SendMessages: false,
+        CreatePublicThreads: true,
+        CreatePrivateThreads: true,
+      });
+      await channel.permissionOverwrites.edit(interaction.user.id, {
+        ViewChannel: true,
+        SendMessages: true,
+      });
+
+      await interaction.reply({ content: `تم استلام التكت بواسطة <@${interaction.user.id}>!`, ephemeral: false });
+    }
+
+    // غلق التكت (تأكيد)
+    else if (interaction.customId === 'ticket_close') {
+      const channel = interaction.channel;
+
+      // تحقق أن المستلم هو من يغلق التكت
+      const ticketUserId = channel.topic?.replace('TICKET-', '');
+      if (channel.ticketClaimedBy !== interaction.user.id) {
+        await interaction.reply({ content: "❌ فقط من استلم التكت يستطيع غلقه.", ephemeral: true });
+        return;
+      }
+
+      // رسالة تأكيد الغلق
+      const confirmRow = new ActionRowBuilder()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId('ticket_cancel_close')
+            .setLabel('تراجع')
+            .setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setCustomId('ticket_confirm_close')
+            .setLabel('غلق نهائي')
+            .setStyle(ButtonStyle.Danger)
+        );
+      await interaction.reply({
+        content: 'هل أنت متأكد أنك تريد غلق التكت؟',
+        components: [confirmRow],
+        ephemeral: false
+      });
+    }
+    // زر تراجع غلق التكت
+    else if (interaction.customId === 'ticket_cancel_close') {
+      await interaction.update({ content: 'تم إلغاء عملية الغلق.', components: [] });
+    }
+    // زر غلق نهائي
+    else if (interaction.customId === 'ticket_confirm_close') {
+      await interaction.channel.delete();
+    }
+  }
+});
+
+client.login(process.env.DISCORD_TOKEN);
