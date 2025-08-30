@@ -1,7 +1,29 @@
 require('dotenv').config();
-const { 
-  Client, GatewayIntentBits, Partials, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, PermissionsBitField, ChannelType, SlashCommandBuilder, REST, Routes 
+const fs = require('fs');
+const path = require('path');
+const {
+  Client, GatewayIntentBits, Partials, ActionRowBuilder, ButtonBuilder, ButtonStyle,
+  EmbedBuilder, PermissionsBitField, ChannelType, SlashCommandBuilder, REST, Routes
 } = require('discord.js');
+
+// المتغيرات
+const port = process.env.PORT || 3000;
+const ticketsFile = path.join(__dirname, 'tickets.json');
+
+// تحميل إعدادات الايمبدات عند بدء البوت
+let ticketConfigData = {};
+if (fs.existsSync(ticketsFile)) {
+  try {
+    ticketConfigData = JSON.parse(fs.readFileSync(ticketsFile, 'utf8'));
+  } catch (e) {
+    ticketConfigData = {};
+  }
+}
+
+// دالة لحفظ الإعدادات في ملف
+function saveTickets() {
+  fs.writeFileSync(ticketsFile, JSON.stringify(ticketConfigData, null, 2));
+}
 
 const client = new Client({
   intents: [
@@ -14,9 +36,7 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 
-// حفظ إعدادات كل روم تكت في Map
-client.ticketConfigMap = new Map();
-
+// أمر السلاش مع الترتيب الصحيح
 const commands = [
   new SlashCommandBuilder()
     .setName('تسطيب')
@@ -35,7 +55,7 @@ const commands = [
       .setRequired(true))
     .addStringOption(option => option
       .setName('buttons')
-      .setDescription('أسماء الأزرار بالشريط (زر أو أكثر، افصلهم ب / مثل: دعم فني/شراء)')
+      .setDescription('أسماء الأزرار بالشريط (افصل كل واحد ب / مثل: دعم فني/شراء)')
       .setRequired(true))
     .addChannelOption(option => option
       .setName('category')
@@ -56,7 +76,6 @@ client.once('ready', async () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-
   try {
     await rest.put(
       Routes.applicationCommands(client.user.id),
@@ -66,6 +85,7 @@ client.once('ready', async () => {
   } catch (err) {
     console.error(err);
   }
+  console.log(`Server running on port ${port}`);
 });
 
 client.on('interactionCreate', async interaction => {
@@ -80,15 +100,7 @@ client.on('interactionCreate', async interaction => {
       const supportRole = interaction.options.getRole('support');
       const image = interaction.options.getString('image');
 
-      // معالجة الأزرار: فصل الأسماء
       const buttons = buttonsValue.split('/').map(b => b.trim()).filter(Boolean);
-
-      // حفظ الإعدادات في Map حسب ايدي رسالة الايمبد
-      const config = {
-        categoryId: category.id,
-        supportRoleId: supportRole.id,
-        buttons: buttons,
-      };
 
       // توليد شريط أو زر واحد حسب عدد الأزرار
       const buttonsRow = new ActionRowBuilder();
@@ -108,9 +120,17 @@ client.on('interactionCreate', async interaction => {
 
       if (image) embed.setImage(image);
 
-      // إرسال الايمبد وحفظ إعداداته
+      // إرسال الايمبد وحفظ إعداداته في ملف
       const message = await room.send({ embeds: [embed], components: [buttonsRow] });
-      client.ticketConfigMap.set(message.id, config);
+      ticketConfigData[message.id] = {
+        categoryId: category.id,
+        supportRoleId: supportRole.id,
+        buttons,
+        title,
+        desc,
+        image
+      };
+      saveTickets();
 
       await interaction.reply({ content: "✅ تم إرسال الايمبد بنجاح!", ephemeral: true });
     }
@@ -119,12 +139,11 @@ client.on('interactionCreate', async interaction => {
   // عند الضغط على زر فتح تكت
   if (interaction.isButton()) {
     if (interaction.customId.startsWith('ticket_open_')) {
-      // جلب إعدادات التكت من رسالة الايمبد
       const msgId = interaction.message.id;
-      const config = client.ticketConfigMap.get(msgId);
+      const config = ticketConfigData[msgId];
 
       if (!config) {
-        await interaction.reply({ content: "❌ حدث خطأ: إعدادات التكت غير موجودة. أعد إرسال الايمبد.", ephemeral: true });
+        await interaction.reply({ content: "❌ إعدادات التكت غير موجودة أو تم فقدها. أعد إرسال الايمبد.", ephemeral: true });
         return;
       }
 
@@ -160,11 +179,13 @@ client.on('interactionCreate', async interaction => {
         ]
       });
 
-      client.ticketConfigMap.set(channel.id, {
+      // حفظ إعدادات الغرفة الجديدة في ملف
+      ticketConfigData[channel.id] = {
         ...config,
         ticketOwnerId: user.id,
-        claimedBy: null,
-      });
+        claimedBy: null
+      };
+      saveTickets();
 
       // منشن رتبة الدعم الفني
       await channel.send(`<@&${supportRoleId}>`);
@@ -198,7 +219,7 @@ client.on('interactionCreate', async interaction => {
     // استلام التكت
     else if (interaction.customId === 'ticket_claim') {
       const channel = interaction.channel;
-      const config = client.ticketConfigMap.get(channel.id);
+      const config = ticketConfigData[channel.id];
       if (!config) {
         await interaction.reply({ content: "❌ إعدادات التكت غير موجودة.", ephemeral: true });
         return;
@@ -216,7 +237,8 @@ client.on('interactionCreate', async interaction => {
       }
 
       config.claimedBy = interaction.user.id;
-      client.ticketConfigMap.set(channel.id, config);
+      ticketConfigData[channel.id] = config;
+      saveTickets();
 
       await channel.permissionOverwrites.edit(supportRoleId, {
         ViewChannel: true,
@@ -232,9 +254,10 @@ client.on('interactionCreate', async interaction => {
       await interaction.reply({ content: `تم استلام التكت بواسطة <@${interaction.user.id}>!`, ephemeral: false });
     }
 
+    // غلق التكت (تأكيد)
     else if (interaction.customId === 'ticket_close') {
       const channel = interaction.channel;
-      const config = client.ticketConfigMap.get(channel.id);
+      const config = ticketConfigData[channel.id];
       if (!config) {
         await interaction.reply({ content: "❌ إعدادات التكت غير موجودة.", ephemeral: true });
         return;
@@ -263,11 +286,16 @@ client.on('interactionCreate', async interaction => {
         ephemeral: false
       });
     }
+
+    // زر تراجع غلق التكت
     else if (interaction.customId === 'ticket_cancel_close') {
       await interaction.update({ content: 'تم إلغاء عملية الغلق.', components: [] });
     }
+
+    // زر غلق نهائي
     else if (interaction.customId === 'ticket_confirm_close') {
-      client.ticketConfigMap.delete(interaction.channel.id);
+      ticketConfigData[interaction.channel.id] && delete ticketConfigData[interaction.channel.id];
+      saveTickets();
       await interaction.channel.delete();
     }
   }
