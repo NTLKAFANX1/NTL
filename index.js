@@ -14,7 +14,7 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 
-// إعداد أمر السلاش "تسطيب" مع تحديد رتبة الدعم الفني مباشرة
+// ترتيب الخيارات: كل المطلوب أولًا ثم الغير مطلوب
 const commands = [
   new SlashCommandBuilder()
     .setName('تسطيب')
@@ -32,10 +32,6 @@ const commands = [
       .setDescription('وصف الايمبد')
       .setRequired(true))
     .addStringOption(option => option
-      .setName('image')
-      .setDescription('رابط صورة (اختياري)')
-      .setRequired(false))
-    .addStringOption(option => option
       .setName('buttons')
       .setDescription('أسماء الأزرار بالشريط (افصل كل واحد ب / مثل: دعم فني/شراء)')
       .setRequired(true))
@@ -47,6 +43,11 @@ const commands = [
       .setName('support')
       .setDescription('رتبة الدعم الفني')
       .setRequired(true))
+    // الخيارات غير المطلوبة بعد المطلوب
+    .addStringOption(option => option
+      .setName('image')
+      .setDescription('رابط صورة (اختياري)')
+      .setRequired(false))
     .toJSON()
 ];
 
@@ -72,10 +73,10 @@ client.on('interactionCreate', async interaction => {
       const room = interaction.options.getChannel('room');
       const title = interaction.options.getString('title');
       const desc = interaction.options.getString('desc');
-      const image = interaction.options.getString('image');
       const buttonsValue = interaction.options.getString('buttons');
       const category = interaction.options.getChannel('category');
       const supportRole = interaction.options.getRole('support');
+      const image = interaction.options.getString('image');
 
       // حفظ إعدادات التكت في الذاكرة
       client.ticketConfig = {
