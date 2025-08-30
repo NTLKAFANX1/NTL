@@ -26,6 +26,8 @@ const client = new Client({
 });
 
 // -------------------- أوامر السلاش --------------------
+
+// أمر تسطيب التكتات مع ايموجيات وكاتاجوري لكل خيار
 const setupCmd = new SlashCommandBuilder()
   .setName('تسطيب')
   .setDescription('إنشاء ايمبد تكتات متعدد الأسئلة والكاتاجوري')
@@ -55,6 +57,7 @@ const setupCmd = new SlashCommandBuilder()
     .setRequired(false))
   .toJSON();
 
+// أمر giveaway
 const giveawayCmd = new SlashCommandBuilder()
   .setName('giveaway')
   .setDescription('انشاء قيف أواي')
@@ -91,7 +94,7 @@ client.on('messageDelete', async msg => {
   };
 });
 client.on('messageCreate', async msg => {
-  if (msg.content === '!snipe') {
+  if (msg.content.trim() === '!snipe') {
     const data = snipes[msg.channel.id];
     if (!data) return msg.reply('لا يوجد رسالة محذوفة!');
     const embed = new EmbedBuilder()
@@ -106,16 +109,19 @@ client.on('messageCreate', async msg => {
 // -------------------- AFK --------------------
 let afks = {}; // userId => { time, mentions: [{author, messageId, channelId}] }
 client.on('messageCreate', async msg => {
-  if (msg.content.startsWith('!afk')) {
+  if (msg.content.trim() === '!afk') {
     afks[msg.author.id] = { time: Date.now(), mentions: [] };
     msg.reply('تم تفعيل وضع الخمول!');
+    return;
   }
   // إذا شخص منشن شخص خامل
-  msg.mentions.users.forEach(user => {
-    if (afks[user.id]) {
-      afks[user.id].mentions.push({ author: msg.author.tag, messageId: msg.id, channelId: msg.channel.id });
-    }
-  });
+  if (msg.mentions.users.size > 0) {
+    msg.mentions.users.forEach(user => {
+      if (afks[user.id]) {
+        afks[user.id].mentions.push({ author: msg.author.tag, messageId: msg.id, channelId: msg.channel.id });
+      }
+    });
+  }
   // إذا شخص خامل كتب رسالة
   if (afks[msg.author.id]) {
     const afkData = afks[msg.author.id];
@@ -135,7 +141,7 @@ client.on('messageCreate', async msg => {
 
 // -------------------- INTERACTIONS --------------------
 client.on('interactionCreate', async interaction => {
-  // أمر تسطيب تكتات
+  // أمر تسطيب التكتات
   if (interaction.isChatInputCommand() && interaction.commandName === 'تسطيب') {
     try {
       const room = interaction.options.getChannel('room');
