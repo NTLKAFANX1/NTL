@@ -17,7 +17,6 @@ const client = new Client({
 // حفظ إعدادات كل روم تكت في Map
 client.ticketConfigMap = new Map();
 
-// ترتيب الخيارات: كل المطلوب أولًا ثم الغير مطلوب
 const commands = [
   new SlashCommandBuilder()
     .setName('تسطيب')
@@ -36,7 +35,7 @@ const commands = [
       .setRequired(true))
     .addStringOption(option => option
       .setName('buttons')
-      .setDescription('أسماء الأزرار بالشريط (افصل كل واحد ب / مثل: دعم فني/شراء)')
+      .setDescription('أسماء الأزرار بالشريط (زر أو أكثر، افصلهم ب / مثل: دعم فني/شراء)')
       .setRequired(true))
     .addChannelOption(option => option
       .setName('category')
@@ -81,15 +80,17 @@ client.on('interactionCreate', async interaction => {
       const supportRole = interaction.options.getRole('support');
       const image = interaction.options.getString('image');
 
-      // حفظ إعدادات التكت في Map حسب ايدي الروم (ايمبد التكت)
+      // معالجة الأزرار: فصل الأسماء
       const buttons = buttonsValue.split('/').map(b => b.trim()).filter(Boolean);
 
+      // حفظ الإعدادات في Map حسب ايدي رسالة الايمبد
       const config = {
         categoryId: category.id,
         supportRoleId: supportRole.id,
         buttons: buttons,
       };
 
+      // توليد شريط أو زر واحد حسب عدد الأزرار
       const buttonsRow = new ActionRowBuilder();
       buttons.forEach((btn, i) => {
         buttonsRow.addComponents(
@@ -107,7 +108,7 @@ client.on('interactionCreate', async interaction => {
 
       if (image) embed.setImage(image);
 
-      // إرسال الايمبد وحفظ إعداداته بـ Map
+      // إرسال الايمبد وحفظ إعداداته
       const message = await room.send({ embeds: [embed], components: [buttonsRow] });
       client.ticketConfigMap.set(message.id, config);
 
@@ -117,7 +118,6 @@ client.on('interactionCreate', async interaction => {
 
   // عند الضغط على زر فتح تكت
   if (interaction.isButton()) {
-    // تحقق أن الزر من التكتات
     if (interaction.customId.startsWith('ticket_open_')) {
       // جلب إعدادات التكت من رسالة الايمبد
       const msgId = interaction.message.id;
@@ -160,7 +160,6 @@ client.on('interactionCreate', async interaction => {
         ]
       });
 
-      // حفظ إعدادات الغرفة الجديدة في Map
       client.ticketConfigMap.set(channel.id, {
         ...config,
         ticketOwnerId: user.id,
@@ -207,22 +206,18 @@ client.on('interactionCreate', async interaction => {
       const supportRoleId = config.supportRoleId;
       const ticketOwnerId = config.ticketOwnerId;
 
-      // تحقق أن الضاغط من رتبة الدعم
       if (!interaction.member.roles.cache.has(supportRoleId)) {
         await interaction.reply({ content: "❌ فقط أعضاء الدعم يمكنهم استلام التكت.", ephemeral: true });
         return;
       }
-      // منع فتح التكت إذا كان المستلم هو نفس فاتح التكت
       if (interaction.user.id === ticketOwnerId) {
         await interaction.reply({ content: "❌ لا يمكنك استلام تكت فتحته بنفسك.", ephemeral: true });
         return;
       }
 
-      // حفظ المستلم في إعدادات الغرفة
       config.claimedBy = interaction.user.id;
       client.ticketConfigMap.set(channel.id, config);
 
-      // تعديل الصلاحيات: فقط المستلم وفاتح التكت يستطيعان الكتابة، باقي الدعم فقط يشاهدون ويعملون threads
       await channel.permissionOverwrites.edit(supportRoleId, {
         ViewChannel: true,
         SendMessages: false,
@@ -237,7 +232,6 @@ client.on('interactionCreate', async interaction => {
       await interaction.reply({ content: `تم استلام التكت بواسطة <@${interaction.user.id}>!`, ephemeral: false });
     }
 
-    // غلق التكت (تأكيد)
     else if (interaction.customId === 'ticket_close') {
       const channel = interaction.channel;
       const config = client.ticketConfigMap.get(channel.id);
@@ -247,13 +241,11 @@ client.on('interactionCreate', async interaction => {
       }
       const claimedBy = config.claimedBy;
 
-      // تحقق أن المستلم هو من يغلق التكت
       if (!claimedBy || claimedBy !== interaction.user.id) {
         await interaction.reply({ content: "❌ فقط من استلم التكت يستطيع غلقه.", ephemeral: true });
         return;
       }
 
-      // رسالة تأكيد الغلق
       const confirmRow = new ActionRowBuilder()
         .addComponents(
           new ButtonBuilder()
@@ -271,13 +263,10 @@ client.on('interactionCreate', async interaction => {
         ephemeral: false
       });
     }
-    // زر تراجع غلق التكت
     else if (interaction.customId === 'ticket_cancel_close') {
       await interaction.update({ content: 'تم إلغاء عملية الغلق.', components: [] });
     }
-    // زر غلق نهائي
     else if (interaction.customId === 'ticket_confirm_close') {
-      // حذف إعدادات التكت من Map
       client.ticketConfigMap.delete(interaction.channel.id);
       await interaction.channel.delete();
     }
