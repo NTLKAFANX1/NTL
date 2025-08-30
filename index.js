@@ -3,27 +3,16 @@ const fs = require('fs');
 const path = require('path');
 const {
   Client, GatewayIntentBits, Partials, ActionRowBuilder, ButtonBuilder, ButtonStyle,
-  EmbedBuilder, PermissionsBitField, ChannelType, SlashCommandBuilder, REST, Routes
+  EmbedBuilder, PermissionsBitField, ChannelType, SlashCommandBuilder, REST, Routes,
+  StringSelectMenuBuilder
 } = require('discord.js');
 
-// المتغيرات
-const port = process.env.PORT || 3000;
 const ticketsFile = path.join(__dirname, 'tickets.json');
-
-// تحميل إعدادات الايمبدات عند بدء البوت
 let ticketConfigData = {};
 if (fs.existsSync(ticketsFile)) {
-  try {
-    ticketConfigData = JSON.parse(fs.readFileSync(ticketsFile, 'utf8'));
-  } catch (e) {
-    ticketConfigData = {};
-  }
+  try { ticketConfigData = JSON.parse(fs.readFileSync(ticketsFile, 'utf8')); } catch { ticketConfigData = {}; }
 }
-
-// دالة لحفظ الإعدادات في ملف
-function saveTickets() {
-  fs.writeFileSync(ticketsFile, JSON.stringify(ticketConfigData, null, 2));
-}
+function saveTickets() { fs.writeFileSync(ticketsFile, JSON.stringify(ticketConfigData, null, 2)); }
 
 const client = new Client({
   intents: [
@@ -36,7 +25,7 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 
-// أمر السلاش مع الترتيب الصحيح
+// أمر السلاش فيه خيار نوع التفاعل: أزرار أو قائمة خيارات
 const commands = [
   new SlashCommandBuilder()
     .setName('تسطيب')
@@ -54,8 +43,16 @@ const commands = [
       .setDescription('وصف الايمبد')
       .setRequired(true))
     .addStringOption(option => option
-      .setName('buttons')
-      .setDescription('أسماء الأزرار بالشريط (افصل كل واحد ب / مثل: دعم فني/شراء)')
+      .setName('options')
+      .setDescription('الأسماء (افصلهم ب / مثل: دعم فني/شراء)، للأزرار أو خيارات القائمة')
+      .setRequired(true))
+    .addStringOption(option => option
+      .setName('interaction_type')
+      .setDescription('نوع التفاعل: أزرار أو قائمة خيارات')
+      .addChoices(
+        { name: 'أزرار', value: 'buttons' },
+        { name: 'قائمة خيارات', value: 'selectmenu' }
+      )
       .setRequired(true))
     .addChannelOption(option => option
       .setName('category')
@@ -85,157 +82,177 @@ client.once('ready', async () => {
   } catch (err) {
     console.error(err);
   }
-  console.log(`Server running on port ${port}`);
 });
 
 client.on('interactionCreate', async interaction => {
   // أمر السلاش
   if (interaction.isChatInputCommand()) {
     if (interaction.commandName === 'تسطيب') {
-      const room = interaction.options.getChannel('room');
-      const title = interaction.options.getString('title');
-      const desc = interaction.options.getString('desc');
-      const buttonsValue = interaction.options.getString('buttons');
-      const category = interaction.options.getChannel('category');
-      const supportRole = interaction.options.getRole('support');
-      const image = interaction.options.getString('image');
+      try {
+        const room = interaction.options.getChannel('room');
+        const title = interaction.options.getString('title');
+        const desc = interaction.options.getString('desc');
+        const optionsValue = interaction.options.getString('options');
+        const interactionType = interaction.options.getString('interaction_type');
+        const category = interaction.options.getChannel('category');
+        const supportRole = interaction.options.getRole('support');
+        const image = interaction.options.getString('image');
 
-      const buttons = buttonsValue.split('/').map(b => b.trim()).filter(Boolean);
+        const optionNames = optionsValue.split('/').map(b => b.trim()).filter(Boolean);
 
-      // توليد شريط أو زر واحد حسب عدد الأزرار
-      const buttonsRow = new ActionRowBuilder();
-      buttons.forEach((btn, i) => {
-        buttonsRow.addComponents(
-          new ButtonBuilder()
-            .setCustomId(`ticket_open_${i}`)
-            .setLabel(btn)
-            .setStyle(ButtonStyle.Primary)
-        );
-      });
+        let row;
+        if (interactionType === 'buttons') {
+          row = new ActionRowBuilder();
+          optionNames.forEach((btn, i) => {
+            row.addComponents(
+              new ButtonBuilder()
+                .setCustomId(`ticket_open_btn_${i}`)
+                .setLabel(btn)
+                .setStyle(ButtonStyle.Primary)
+            );
+          });
+        } else if (interactionType === 'selectmenu') {
+          row = new ActionRowBuilder()
+            .addComponents(
+              new StringSelectMenuBuilder()
+                .setCustomId('ticket_open_select')
+                .setPlaceholder('اختر نوع التكت')
+                .addOptions(optionNames.map((opt, idx) => ({
+                  label: opt,
+                  value: `select_${idx}`,
+                  description: `فتح تكت نوع ${opt}`
+                })))
+            );
+        }
 
-      const embed = new EmbedBuilder()
-        .setTitle(title)
-        .setDescription(desc)
-        .setColor(0x00AE86);
+        const embed = new EmbedBuilder()
+          .setTitle(title)
+          .setDescription(desc)
+          .setColor(0x00AE86);
 
-      if (image) embed.setImage(image);
+        if (image) embed.setImage(image);
 
-      // إرسال الايمبد وحفظ إعداداته في ملف
-      const message = await room.send({ embeds: [embed], components: [buttonsRow] });
-      ticketConfigData[message.id] = {
-        categoryId: category.id,
-        supportRoleId: supportRole.id,
-        buttons,
-        title,
-        desc,
-        image
-      };
-      saveTickets();
+        // إرسال الايمبد وحفظ إعداداته في ملف
+        const message = await room.send({ embeds: [embed], components: [row] });
 
-      await interaction.reply({ content: "✅ تم إرسال الايمبد بنجاح!", ephemeral: true });
+        ticketConfigData[message.id] = {
+          categoryId: category.id,
+          supportRoleId: supportRole.id,
+          optionNames,
+          interactionType,
+          title,
+          desc,
+          image
+        };
+        saveTickets();
+
+        await interaction.reply({ content: "✅ تم إرسال الايمبد بنجاح!", ephemeral: true });
+      } catch (err) {
+        await interaction.reply({ content: `❌ حدث خطأ أثناء إرسال الايمبد: ${err}`, ephemeral: true });
+      }
     }
   }
 
-  // عند الضغط على زر فتح تكت
-  if (interaction.isButton()) {
-    if (interaction.customId.startsWith('ticket_open_')) {
-      const msgId = interaction.message.id;
-      const config = ticketConfigData[msgId];
+  // عند الضغط على زر أو اختيار من القائمة
+  if (interaction.isButton() || interaction.isStringSelectMenu()) {
+    let config;
+    let btnLabel;
+    let btnIdx;
+    let msgId = interaction.message.id;
 
-      if (!config) {
-        await interaction.reply({ content: "❌ إعدادات التكت غير موجودة أو تم فقدها. أعد إرسال الايمبد.", ephemeral: true });
-        return;
-      }
+    if (interaction.isButton() && interaction.customId.startsWith('ticket_open_btn_')) {
+      config = ticketConfigData[msgId];
+      if (!config) return await interaction.reply({ content: "❌ إعدادات التكت غير موجودة أو تم فقدها.", ephemeral: true });
 
-      const btnIdx = parseInt(interaction.customId.split('_')[2]);
-      const btnLabel = config.buttons[btnIdx];
+      btnIdx = parseInt(interaction.customId.split('_')[3]);
+      btnLabel = config.optionNames[btnIdx];
+    }
+    else if (interaction.isStringSelectMenu() && interaction.customId === 'ticket_open_select') {
+      config = ticketConfigData[msgId];
+      if (!config) return await interaction.reply({ content: "❌ إعدادات التكت غير موجودة أو تم فقدها.", ephemeral: true });
 
-      const guild = interaction.guild;
-      const category = guild.channels.cache.get(config.categoryId);
-      const supportRoleId = config.supportRoleId;
-      const user = interaction.user;
-
-      // تحقق هل يوجد تكت مفتوح لهذا العضو
-      const existing = guild.channels.cache.find(c =>
-        c.parentId === category.id &&
-        c.type === ChannelType.GuildText &&
-        c.topic === `TICKET-${user.id}`
-      );
-      if (existing) {
-        await interaction.reply({ content: `⚠️ لديك بالفعل تكت مفتوح: <#${existing.id}>`, ephemeral: true });
-        return;
-      }
-
-      // إنشاء الغرفة مع صلاحيات مخصصة
-      const channel = await guild.channels.create({
-        name: `ticket-${user.username}`,
-        type: ChannelType.GuildText,
-        parent: category,
-        topic: `TICKET-${user.id}`,
-        permissionOverwrites: [
-          { id: guild.id, deny: [PermissionsBitField.Flags.ViewChannel] },
-          { id: user.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] },
-          { id: supportRoleId, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] },
-        ]
-      });
-
-      // حفظ إعدادات الغرفة الجديدة في ملف
-      ticketConfigData[channel.id] = {
-        ...config,
-        ticketOwnerId: user.id,
-        claimedBy: null
-      };
-      saveTickets();
-
-      // منشن رتبة الدعم الفني
-      await channel.send(`<@&${supportRoleId}>`);
-      
-      // رسالة الترحيب مع أزرار "استلام/غلق"
-      const claimRow = new ActionRowBuilder()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId('ticket_claim')
-            .setLabel('استلام التكت')
-            .setStyle(ButtonStyle.Success),
-          new ButtonBuilder()
-            .setCustomId('ticket_close')
-            .setLabel('غلق التكت')
-            .setStyle(ButtonStyle.Danger)
-        );
-      await channel.send({
-        embeds: [
-          new EmbedBuilder()
-            .setTitle('مرحبا 👋')
-            .setDescription(
-              `مرحبا <@${user.id}>! شكرا لفتح تكت **${btnLabel}**.\nسيتم الرد عليك قريبًا من فريق الدعم الفني.`
-            )
-        ],
-        components: [claimRow]
-      });
-
-      await interaction.reply({ content: `✅ تم فتح تكت جديد: <#${channel.id}>`, ephemeral: true });
+      btnIdx = parseInt(interaction.values[0].split('_')[1]);
+      btnLabel = config.optionNames[btnIdx];
+    } else {
+      return;
     }
 
-    // استلام التكت
-    else if (interaction.customId === 'ticket_claim') {
-      const channel = interaction.channel;
-      const config = ticketConfigData[channel.id];
-      if (!config) {
-        await interaction.reply({ content: "❌ إعدادات التكت غير موجودة.", ephemeral: true });
-        return;
-      }
-      const supportRoleId = config.supportRoleId;
-      const ticketOwnerId = config.ticketOwnerId;
+    // نفس منطق فتح التكت
+    const guild = interaction.guild;
+    const category = guild.channels.cache.get(config.categoryId);
+    const supportRoleId = config.supportRoleId;
+    const user = interaction.user;
 
+    const existing = guild.channels.cache.find(c =>
+      c.parentId === category.id &&
+      c.type === ChannelType.GuildText &&
+      c.topic === `TICKET-${user.id}`
+    );
+    if (existing) {
+      return await interaction.reply({ content: `⚠️ لديك بالفعل تكت مفتوح: <#${existing.id}>`, ephemeral: true });
+    }
+
+    const channel = await guild.channels.create({
+      name: `ticket-${user.username}`,
+      type: ChannelType.GuildText,
+      parent: category,
+      topic: `TICKET-${user.id}`,
+      permissionOverwrites: [
+        { id: guild.id, deny: [PermissionsBitField.Flags.ViewChannel] },
+        { id: user.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] },
+        { id: supportRoleId, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] },
+      ]
+    });
+
+    ticketConfigData[channel.id] = {
+      ...config,
+      ticketOwnerId: user.id,
+      claimedBy: null
+    };
+    saveTickets();
+
+    await channel.send(`<@&${supportRoleId}>`);
+    const claimRow = new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId('ticket_claim')
+          .setLabel('استلام التكت')
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId('ticket_close')
+          .setLabel('غلق التكت')
+          .setStyle(ButtonStyle.Danger)
+      );
+    await channel.send({
+      embeds: [
+        new EmbedBuilder()
+          .setTitle('مرحبا 👋')
+          .setDescription(
+            `مرحبا <@${user.id}>! شكرا لفتح تكت **${btnLabel}**.\nسيتم الرد عليك قريبًا من فريق الدعم الفني.`
+          )
+      ],
+      components: [claimRow]
+    });
+
+    await interaction.reply({ content: `✅ تم فتح تكت جديد: <#${channel.id}>`, ephemeral: true });
+  }
+
+  // باقي منطق استلام/غلق التكت كما سابقًا
+  if (interaction.isButton() && ['ticket_claim', 'ticket_close', 'ticket_cancel_close', 'ticket_confirm_close'].includes(interaction.customId)) {
+    const channel = interaction.channel;
+    const config = ticketConfigData[channel.id];
+    if (!config) return await interaction.reply({ content: "❌ إعدادات التكت غير موجودة.", ephemeral: true });
+
+    const supportRoleId = config.supportRoleId;
+    const ticketOwnerId = config.ticketOwnerId;
+
+    if (interaction.customId === 'ticket_claim') {
       if (!interaction.member.roles.cache.has(supportRoleId)) {
-        await interaction.reply({ content: "❌ فقط أعضاء الدعم يمكنهم استلام التكت.", ephemeral: true });
-        return;
+        return await interaction.reply({ content: "❌ فقط أعضاء الدعم يمكنهم استلام التكت.", ephemeral: true });
       }
       if (interaction.user.id === ticketOwnerId) {
-        await interaction.reply({ content: "❌ لا يمكنك استلام تكت فتحته بنفسك.", ephemeral: true });
-        return;
+        return await interaction.reply({ content: "❌ لا يمكنك استلام تكت فتحته بنفسك.", ephemeral: true });
       }
-
       config.claimedBy = interaction.user.id;
       ticketConfigData[channel.id] = config;
       saveTickets();
@@ -250,25 +267,14 @@ client.on('interactionCreate', async interaction => {
         ViewChannel: true,
         SendMessages: true,
       });
-
-      await interaction.reply({ content: `تم استلام التكت بواسطة <@${interaction.user.id}>!`, ephemeral: false });
+      return await interaction.reply({ content: `تم استلام التكت بواسطة <@${interaction.user.id}>!`, ephemeral: false });
     }
 
-    // غلق التكت (تأكيد)
-    else if (interaction.customId === 'ticket_close') {
-      const channel = interaction.channel;
-      const config = ticketConfigData[channel.id];
-      if (!config) {
-        await interaction.reply({ content: "❌ إعدادات التكت غير موجودة.", ephemeral: true });
-        return;
-      }
+    if (interaction.customId === 'ticket_close') {
       const claimedBy = config.claimedBy;
-
       if (!claimedBy || claimedBy !== interaction.user.id) {
-        await interaction.reply({ content: "❌ فقط من استلم التكت يستطيع غلقه.", ephemeral: true });
-        return;
+        return await interaction.reply({ content: "❌ فقط من استلم التكت يستطيع غلقه.", ephemeral: true });
       }
-
       const confirmRow = new ActionRowBuilder()
         .addComponents(
           new ButtonBuilder()
@@ -280,20 +286,18 @@ client.on('interactionCreate', async interaction => {
             .setLabel('غلق نهائي')
             .setStyle(ButtonStyle.Danger)
         );
-      await interaction.reply({
+      return await interaction.reply({
         content: 'هل أنت متأكد أنك تريد غلق التكت؟',
         components: [confirmRow],
         ephemeral: false
       });
     }
 
-    // زر تراجع غلق التكت
-    else if (interaction.customId === 'ticket_cancel_close') {
-      await interaction.update({ content: 'تم إلغاء عملية الغلق.', components: [] });
+    if (interaction.customId === 'ticket_cancel_close') {
+      return await interaction.update({ content: 'تم إلغاء عملية الغلق.', components: [] });
     }
 
-    // زر غلق نهائي
-    else if (interaction.customId === 'ticket_confirm_close') {
+    if (interaction.customId === 'ticket_confirm_close') {
       ticketConfigData[interaction.channel.id] && delete ticketConfigData[interaction.channel.id];
       saveTickets();
       await interaction.channel.delete();
