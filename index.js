@@ -14,6 +14,9 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 
+// حفظ إعدادات كل روم تكت في Map
+client.ticketConfigMap = new Map();
+
 // ترتيب الخيارات: كل المطلوب أولًا ثم الغير مطلوب
 const commands = [
   new SlashCommandBuilder()
@@ -43,7 +46,6 @@ const commands = [
       .setName('support')
       .setDescription('رتبة الدعم الفني')
       .setRequired(true))
-    // الخيارات غير المطلوبة بعد المطلوب
     .addStringOption(option => option
       .setName('image')
       .setDescription('رابط صورة (اختياري)')
@@ -68,6 +70,7 @@ client.once('ready', async () => {
 });
 
 client.on('interactionCreate', async interaction => {
+  // أمر السلاش
   if (interaction.isChatInputCommand()) {
     if (interaction.commandName === 'تسطيب') {
       const room = interaction.options.getChannel('room');
@@ -78,14 +81,15 @@ client.on('interactionCreate', async interaction => {
       const supportRole = interaction.options.getRole('support');
       const image = interaction.options.getString('image');
 
-      // حفظ إعدادات التكت في الذاكرة
-      client.ticketConfig = {
+      // حفظ إعدادات التكت في Map حسب ايدي الروم (ايمبد التكت)
+      const buttons = buttonsValue.split('/').map(b => b.trim()).filter(Boolean);
+
+      const config = {
         categoryId: category.id,
         supportRoleId: supportRole.id,
+        buttons: buttons,
       };
 
-      // شريط الأزرار
-      const buttons = buttonsValue.split('/').map(b => b.trim()).filter(Boolean);
       const buttonsRow = new ActionRowBuilder();
       buttons.forEach((btn, i) => {
         buttonsRow.addComponents(
@@ -103,24 +107,33 @@ client.on('interactionCreate', async interaction => {
 
       if (image) embed.setImage(image);
 
-      await room.send({ embeds: [embed], components: [buttonsRow] });
-      await interaction.reply({ content: "✅ تم إرسال الايمبد بنجاح!", ephemeral: true });
+      // إرسال الايمبد وحفظ إعداداته بـ Map
+      const message = await room.send({ embeds: [embed], components: [buttonsRow] });
+      client.ticketConfigMap.set(message.id, config);
 
-      // حفظ أسماء الأزرار لاستعمالها لاحقًا عند فتح التكت
-      client.ticketButtons = buttons;
+      await interaction.reply({ content: "✅ تم إرسال الايمبد بنجاح!", ephemeral: true });
     }
   }
 
-  // عند الضغط على زر فتح التكت
+  // عند الضغط على زر فتح تكت
   if (interaction.isButton()) {
     // تحقق أن الزر من التكتات
     if (interaction.customId.startsWith('ticket_open_')) {
+      // جلب إعدادات التكت من رسالة الايمبد
+      const msgId = interaction.message.id;
+      const config = client.ticketConfigMap.get(msgId);
+
+      if (!config) {
+        await interaction.reply({ content: "❌ حدث خطأ: إعدادات التكت غير موجودة. أعد إرسال الايمبد.", ephemeral: true });
+        return;
+      }
+
       const btnIdx = parseInt(interaction.customId.split('_')[2]);
-      const btnLabel = client.ticketButtons[btnIdx];
+      const btnLabel = config.buttons[btnIdx];
 
       const guild = interaction.guild;
-      const category = guild.channels.cache.get(client.ticketConfig.categoryId);
-      const supportRoleId = client.ticketConfig.supportRoleId;
+      const category = guild.channels.cache.get(config.categoryId);
+      const supportRoleId = config.supportRoleId;
       const user = interaction.user;
 
       // تحقق هل يوجد تكت مفتوح لهذا العضو
@@ -145,6 +158,13 @@ client.on('interactionCreate', async interaction => {
           { id: user.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] },
           { id: supportRoleId, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] },
         ]
+      });
+
+      // حفظ إعدادات الغرفة الجديدة في Map
+      client.ticketConfigMap.set(channel.id, {
+        ...config,
+        ticketOwnerId: user.id,
+        claimedBy: null,
       });
 
       // منشن رتبة الدعم الفني
@@ -179,21 +199,28 @@ client.on('interactionCreate', async interaction => {
     // استلام التكت
     else if (interaction.customId === 'ticket_claim') {
       const channel = interaction.channel;
-      const supportRoleId = client.ticketConfig.supportRoleId;
+      const config = client.ticketConfigMap.get(channel.id);
+      if (!config) {
+        await interaction.reply({ content: "❌ إعدادات التكت غير موجودة.", ephemeral: true });
+        return;
+      }
+      const supportRoleId = config.supportRoleId;
+      const ticketOwnerId = config.ticketOwnerId;
+
       // تحقق أن الضاغط من رتبة الدعم
       if (!interaction.member.roles.cache.has(supportRoleId)) {
         await interaction.reply({ content: "❌ فقط أعضاء الدعم يمكنهم استلام التكت.", ephemeral: true });
         return;
       }
       // منع فتح التكت إذا كان المستلم هو نفس فاتح التكت
-      const ticketUserId = channel.topic?.replace('TICKET-', '');
-      if (interaction.user.id === ticketUserId) {
+      if (interaction.user.id === ticketOwnerId) {
         await interaction.reply({ content: "❌ لا يمكنك استلام تكت فتحته بنفسك.", ephemeral: true });
         return;
       }
 
-      // حفظ المستلم بالتشات
-      channel.ticketClaimedBy = interaction.user.id;
+      // حفظ المستلم في إعدادات الغرفة
+      config.claimedBy = interaction.user.id;
+      client.ticketConfigMap.set(channel.id, config);
 
       // تعديل الصلاحيات: فقط المستلم وفاتح التكت يستطيعان الكتابة، باقي الدعم فقط يشاهدون ويعملون threads
       await channel.permissionOverwrites.edit(supportRoleId, {
@@ -213,10 +240,15 @@ client.on('interactionCreate', async interaction => {
     // غلق التكت (تأكيد)
     else if (interaction.customId === 'ticket_close') {
       const channel = interaction.channel;
+      const config = client.ticketConfigMap.get(channel.id);
+      if (!config) {
+        await interaction.reply({ content: "❌ إعدادات التكت غير موجودة.", ephemeral: true });
+        return;
+      }
+      const claimedBy = config.claimedBy;
 
       // تحقق أن المستلم هو من يغلق التكت
-      const ticketUserId = channel.topic?.replace('TICKET-', '');
-      if (channel.ticketClaimedBy !== interaction.user.id) {
+      if (!claimedBy || claimedBy !== interaction.user.id) {
         await interaction.reply({ content: "❌ فقط من استلم التكت يستطيع غلقه.", ephemeral: true });
         return;
       }
@@ -245,6 +277,8 @@ client.on('interactionCreate', async interaction => {
     }
     // زر غلق نهائي
     else if (interaction.customId === 'ticket_confirm_close') {
+      // حذف إعدادات التكت من Map
+      client.ticketConfigMap.delete(interaction.channel.id);
       await interaction.channel.delete();
     }
   }
