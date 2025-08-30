@@ -1,18 +1,67 @@
 require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
 const {
-  Client, GatewayIntentBits, Partials, ActionRowBuilder, ButtonBuilder, ButtonStyle,
-  EmbedBuilder, PermissionsBitField, ChannelType, SlashCommandBuilder, REST, Routes,
-  StringSelectMenuBuilder, time
+  Client,
+  GatewayIntentBits,
+  Partials,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  EmbedBuilder,
+  PermissionsBitField,
+  ChannelType,
+  SlashCommandBuilder,
+  REST,
+  Routes
 } = require('discord.js');
 
-const ticketsFile = path.join(__dirname, 'tickets.json');
-let ticketConfigData = {};
-if (fs.existsSync(ticketsFile)) {
-  try { ticketConfigData = JSON.parse(fs.readFileSync(ticketsFile, 'utf8')); } catch { ticketConfigData = {}; }
-}
-function saveTickets() { fs.writeFileSync(ticketsFile, JSON.stringify(ticketConfigData, null, 2)); }
+// زر التكتات
+const helpdeskButtons = [
+  {
+    label: 'استفسار',
+    emoji: '1411417960517603459',
+    categoryId: '1411433334189588510',
+    desc: 'لأي سؤال أو استفسار عام أو خاص.',
+    color: 0x3498db
+  },
+  {
+    label: 'استلام فعالية',
+    emoji: '1411419056602480681',
+    categoryId: '1411329168909799505',
+    desc: 'استلام جوائز أو هدايا الفعاليات.',
+    color: 0x27ae60
+  },
+  {
+    label: 'تشهير',
+    emoji: '1411419566587904082',
+    categoryId: '1411433502389440522',
+    desc: 'الإبلاغ عن التشهير أو الإساءة.',
+    color: 0xe74c3c
+  }
+];
+
+// أمر السلاش helpdesk
+const helpdeskCmd = new SlashCommandBuilder()
+  .setName('helpdesk')
+  .setDescription('يرسل ايمبد طلب المساعدة مع أزرار التكتات')
+  .addChannelOption(option => option
+    .setName('room')
+    .setDescription('الغرفة التي سيتم إرسال الايمبد فيها')
+    .setRequired(true))
+  .addRoleOption(option => option
+    .setName('support')
+    .setDescription('رتبة الدعم الفني')
+    .setRequired(true))
+  .toJSON();
+
+// أمر السلاش giveaway
+const giveawayCmd = new SlashCommandBuilder()
+  .setName('giveaway')
+  .setDescription('انشاء قيف اواي بشكل جذاب')
+  .addStringOption(option => option.setName('desc').setDescription('الوصف (على ايش)').setRequired(true))
+  .addIntegerOption(option => option.setName('days').setDescription('عدد الأيام').setRequired(false))
+  .addIntegerOption(option => option.setName('hours').setDescription('عدد الساعات').setRequired(false))
+  .addIntegerOption(option => option.setName('minutes').setDescription('عدد الدقائق').setRequired(false))
+  .toJSON();
 
 const client = new Client({
   intents: [
@@ -25,56 +74,13 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 
-// -------------------- أوامر السلاش --------------------
-
-// أمر تسطيب التكتات مع ايموجيات وكاتاجوري لكل خيار
-const setupCmd = new SlashCommandBuilder()
-  .setName('تسطيب')
-  .setDescription('إنشاء ايمبد تكتات متعدد الأسئلة والكاتاجوري')
-  .addChannelOption(option => option
-    .setName('room')
-    .setDescription('الغرفة التي سيتم إرسال الايمبد فيها')
-    .setRequired(true))
-  .addStringOption(option => option
-    .setName('title')
-    .setDescription('عنوان الايمبد')
-    .setRequired(true))
-  .addStringOption(option => option
-    .setName('desc')
-    .setDescription('وصف الايمبد')
-    .setRequired(true))
-  .addStringOption(option => option
-    .setName('options')
-    .setDescription('كل خيار: نص/ايموجي/كاتاجوريId كل خيار بسطر أو بينهم | مثال: دعم فني/<:emoji:123>/123456789')
-    .setRequired(true))
-  .addRoleOption(option => option
-    .setName('support')
-    .setDescription('رتبة الدعم الفني')
-    .setRequired(true))
-  .addStringOption(option => option
-    .setName('image')
-    .setDescription('رابط صورة (اختياري)')
-    .setRequired(false))
-  .toJSON();
-
-// أمر giveaway
-const giveawayCmd = new SlashCommandBuilder()
-  .setName('giveaway')
-  .setDescription('انشاء قيف أواي')
-  .addStringOption(option => option.setName('desc').setDescription('الوصف (على ايش)').setRequired(true))
-  .addIntegerOption(option => option.setName('days').setDescription('عدد الأيام').setRequired(false))
-  .addIntegerOption(option => option.setName('hours').setDescription('عدد الساعات').setRequired(false))
-  .addIntegerOption(option => option.setName('minutes').setDescription('عدد الدقائق').setRequired(false))
-  .toJSON();
-
-// -------------------- رفع الأوامر --------------------
 client.once('ready', async () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
   try {
     await rest.put(
       Routes.applicationCommands(client.user.id),
-      { body: [setupCmd, giveawayCmd] }
+      { body: [helpdeskCmd, giveawayCmd] }
     );
     console.log('✅ Slash commands uploaded.');
   } catch (err) {
@@ -96,11 +102,12 @@ client.on('messageDelete', async msg => {
 client.on('messageCreate', async msg => {
   if (msg.content.trim() === '!snipe') {
     const data = snipes[msg.channel.id];
-    if (!data) return msg.reply('لا يوجد رسالة محذوفة!');
+    if (!data) return msg.reply('❌ لا يوجد رسالة محذوفة!');
     const embed = new EmbedBuilder()
-      .setAuthor({ name: data.author, iconURL: data.avatar })
+      .setColor(0xf1c40f)
+      .setAuthor({ name: `🕵️‍♂️ Snipe | صاحب الرسالة: ${data.author}`, iconURL: data.avatar || undefined })
       .setDescription(data.content || 'لا يوجد محتوى')
-      .setFooter({ text: `الوقت: ${time(data.time, 'R')}` });
+      .setFooter({ text: `الوقت: ${data.time.toLocaleTimeString()} - ${data.time.toLocaleDateString()}` });
     if (data.image) embed.setImage(data.image);
     msg.channel.send({ embeds: [embed] });
   }
@@ -111,10 +118,15 @@ let afks = {}; // userId => { time, mentions: [{author, messageId, channelId}] }
 client.on('messageCreate', async msg => {
   if (msg.content.trim() === '!afk') {
     afks[msg.author.id] = { time: Date.now(), mentions: [] };
-    msg.reply('تم تفعيل وضع الخمول!');
+    const embed = new EmbedBuilder()
+      .setColor(0x2ecc71)
+      .setTitle('🌙 وضع AFK مفعل')
+      .setDescription(`انت الآن في وضع AFK. سيتم تنبيهك عند ذكر اسمك.`)
+      .setFooter({ text: `الوقت: ${new Date().toLocaleTimeString()} - ${new Date().toLocaleDateString()}` });
+    msg.reply({ embeds: [embed] });
     return;
   }
-  // إذا شخص منشن شخص خامل
+  // إذا شخص منشن شخص AFK
   if (msg.mentions.users.size > 0) {
     msg.mentions.users.forEach(user => {
       if (afks[user.id]) {
@@ -122,16 +134,18 @@ client.on('messageCreate', async msg => {
       }
     });
   }
-  // إذا شخص خامل كتب رسالة
+  // إذا شخص AFK كتب رسالة
   if (afks[msg.author.id]) {
     const afkData = afks[msg.author.id];
     let embed = new EmbedBuilder()
-      .setTitle('وضع الخمول انتهى')
-      .setDescription(`كنت خامل منذ <t:${Math.floor(afkData.time/1000)}:R>`);
+      .setColor(0x2ecc71)
+      .setTitle('🚀 رجعت من AFK')
+      .setDescription(`كنت في وضع AFK لمدة <t:${Math.floor(afkData.time/1000)}:R>`)
+      .setFooter({ text: `مرحبًا بعودتك!` });
     afkData.mentions.forEach((m, i) => {
       embed.addFields({
         name: `منشن رقم ${i+1}`,
-        value: `[${m.author} | اضغط هنا لعرض الرسالة](https://discord.com/channels/${msg.guild.id}/${m.channelId}/${m.messageId})`
+        value: `👤 **${m.author}** | [اضغط هنا لعرض الرسالة](https://discord.com/channels/${msg.guild.id}/${m.channelId}/${m.messageId})`
       });
     });
     msg.reply({ embeds: [embed] });
@@ -141,69 +155,64 @@ client.on('messageCreate', async msg => {
 
 // -------------------- INTERACTIONS --------------------
 client.on('interactionCreate', async interaction => {
-  // أمر تسطيب التكتات
-  if (interaction.isChatInputCommand() && interaction.commandName === 'تسطيب') {
-    try {
-      const room = interaction.options.getChannel('room');
-      const title = interaction.options.getString('title');
-      const desc = interaction.options.getString('desc');
-      const optionsValue = interaction.options.getString('options');
-      const supportRole = interaction.options.getRole('support');
-      const image = interaction.options.getString('image');
-      // معالجة الخيارات (نص/ايموجي/كاتاجوري)
-      const optionLines = optionsValue.split(/[\n|]+/).map(x => x.trim()).filter(Boolean);
-      const selectOptions = [];
-      for (const line of optionLines) {
-        const [text, emojiRaw, categoryId] = line.split('/');
-        let emoji;
-        if (emojiRaw && emojiRaw.match(/^<:.+:(\d+)>$/)) {
-          const emojiId = emojiRaw.match(/^<:.+:(\d+)>$/)[1];
-          emoji = { id: emojiId };
-        }
-        selectOptions.push({
-          label: text,
-          value: `${text}_${categoryId}`,
-          emoji,
-          description: `فتح تكت نوع ${text} في كاتاجوري ${categoryId}`
-        });
-      }
-      const selectMenu = new StringSelectMenuBuilder()
-        .setCustomId('ticket_open_select')
-        .setPlaceholder('اختر نوع التكت')
-        .addOptions(selectOptions);
-      const row = new ActionRowBuilder().addComponents(selectMenu);
-      const embed = new EmbedBuilder().setTitle(title).setDescription(desc).setColor(0x00AE86);
-      if (image) embed.setImage(image);
-      const message = await room.send({ embeds: [embed], components: [row] });
-      ticketConfigData[message.id] = {
-        supportRoleId: supportRole.id,
-        selectOptions,
-      };
-      saveTickets();
-      await interaction.reply({ content: "✅ تم إرسال الايمبد بنجاح!", ephemeral: true });
-    } catch (err) {
-      await interaction.reply({ content: `❌ خطأ أثناء إرسال الايمبد: ${err}`, ephemeral: true });
-    }
+  // أمر helpdesk
+  if (interaction.isChatInputCommand() && interaction.commandName === 'helpdesk') {
+    const room = interaction.options.getChannel('room');
+    const supportRole = interaction.options.getRole('support');
+    const guild = interaction.guild;
+
+    // صورة السيرفر
+    const serverImage = guild.iconURL({ extension: 'png', size: 1024 });
+
+    // شريط الأزرار مع الإيموجيات
+    const row = new ActionRowBuilder();
+    helpdeskButtons.forEach((btn, idx) => {
+      row.addComponents(
+        new ButtonBuilder()
+          .setCustomId(`helpdesk_open_${idx}`)
+          .setLabel(btn.label)
+          .setStyle(ButtonStyle.Primary)
+          .setEmoji(btn.emoji)
+      );
+    });
+
+    // الايمبد الجذاب
+    const embed = new EmbedBuilder()
+      .setTitle('🎯 الحصول على مساعدة')
+      .setDescription(
+        `> **هنا يمكنك طلب المساعدة بسهولة!**\n> اختر أحد الخيارات أدناه حسب نوع مشكلتك أو طلبك.\n\n`
+        + helpdeskButtons.map(b => `**${b.label}** ${b.emoji ? `<:${b.label}:${b.emoji}>` : ''}: ${b.desc}`).join('\n')
+        + `\n\n✅ للحصول على مساعدة اضغط الزر المناسب بالأسفل.`
+      )
+      .setThumbnail(serverImage)
+      .setColor(0x0099ff);
+
+    await room.send({ embeds: [embed], components: [row] });
+    await interaction.reply({ content: "✅ تم إرسال ايمبد المساعدة بشكل احترافي.", ephemeral: true });
   }
 
-  // فتح تكت مع كاتاجوري مخصص لكل خيار
-  if (interaction.isStringSelectMenu() && interaction.customId === 'ticket_open_select') {
-    const config = ticketConfigData[interaction.message.id];
-    if (!config) return;
-    const [text, categoryId] = interaction.values[0].split('_');
-    const supportRoleId = config.supportRoleId;
+  // عند الضغط على زر تكت
+  if (interaction.isButton() && interaction.customId.startsWith('helpdesk_open_')) {
+    const btnIdx = parseInt(interaction.customId.split('_')[2]);
+    const btnData = helpdeskButtons[btnIdx];
+    if (!btnData) return interaction.reply({ content: "❌ خيار غير موجود.", ephemeral: true });
+
+    const categoryId = btnData.categoryId;
+    const supportRoleId = interaction.guild.roles.cache.find(r => r.name === 'Support')?.id;
     const user = interaction.user;
     const guild = interaction.guild;
     const category = guild.channels.cache.get(categoryId);
-    // تحقق هل يوجد تكت مفتوح لهذا العضو
+
+    // تحقق هل لديه تكت مفتوح بنفس الكاتاجوري
     const existing = guild.channels.cache.find(c =>
       c.parentId === category.id &&
       c.type === ChannelType.GuildText &&
       c.topic === `TICKET-${user.id}`
     );
     if (existing) {
-      return await interaction.reply({ content: `⚠️ لديك بالفعل تكت مفتوح: <#${existing.id}>`, ephemeral: true });
+      return await interaction.reply({ content: `❗ لديك بالفعل تكت مفتوح: <#${existing.id}>`, ephemeral: true });
     }
+
     // إنشاء الغرفة
     const channel = await guild.channels.create({
       name: `ticket-${user.username}`,
@@ -216,67 +225,23 @@ client.on('interactionCreate', async interaction => {
         { id: supportRoleId, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] },
       ]
     });
-    ticketConfigData[channel.id] = { ...config, ticketOwnerId: user.id, claimedBy: null };
-    saveTickets();
+
+    // رسالة الترحيب في التكت بشكل جميل
     await channel.send(`<@&${supportRoleId}>`);
     await channel.send({
-      embeds: [new EmbedBuilder()
-        .setTitle('مرحبا 👋')
-        .setDescription(`مرحبا <@${user.id}>! شكرا لفتح تكت **${text}**.\nسيتم الرد عليك قريبًا من فريق الدعم الفني.`)],
-      components: [new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('ticket_claim').setLabel('استلام التكت').setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId('ticket_close').setLabel('غلق التكت').setStyle(ButtonStyle.Danger)
-      )]
+      embeds: [
+        new EmbedBuilder()
+          .setColor(btnData.color)
+          .setTitle(`✉️ تكت جديد: ${btnData.label}`)
+          .setDescription(
+            `مرحبا <@${user.id}>! 👋\n**نوع التكت:** ${btnData.label}\n${btnData.desc}\n\n`
+            + "سيتم الرد عليك من فريق الدعم الفني بأقرب وقت."
+          )
+          .setFooter({ text: 'Support Team', iconURL: interaction.guild.iconURL() })
+      ]
     });
-    await interaction.reply({ content: `✅ تم فتح تكت جديد: <#${channel.id}>`, ephemeral: true });
-  }
 
-  // استلام/غلق التكتات
-  if (interaction.isButton() && ['ticket_claim', 'ticket_close', 'ticket_cancel_close', 'ticket_confirm_close'].includes(interaction.customId)) {
-    const channel = interaction.channel;
-    const config = ticketConfigData[channel.id];
-    if (!config) return await interaction.reply({ content: "❌ إعدادات التكت غير موجودة.", ephemeral: true });
-    const supportRoleId = config.supportRoleId;
-    const ticketOwnerId = config.ticketOwnerId;
-    if (interaction.customId === 'ticket_claim') {
-      if (!interaction.member.roles.cache.has(supportRoleId))
-        return await interaction.reply({ content: "❌ فقط أعضاء الدعم يمكنهم استلام التكت.", ephemeral: true });
-      if (interaction.user.id === ticketOwnerId)
-        return await interaction.reply({ content: "❌ لا يمكنك استلام تكت فتحته بنفسك.", ephemeral: true });
-      config.claimedBy = interaction.user.id;
-      ticketConfigData[channel.id] = config;
-      saveTickets();
-      await channel.permissionOverwrites.edit(supportRoleId, {
-        ViewChannel: true,
-        SendMessages: false,
-        CreatePublicThreads: true,
-        CreatePrivateThreads: true,
-      });
-      await channel.permissionOverwrites.edit(interaction.user.id, {
-        ViewChannel: true,
-        SendMessages: true,
-      });
-      return await interaction.reply({ content: `تم استلام التكت بواسطة <@${interaction.user.id}>!`, ephemeral: false });
-    }
-    if (interaction.customId === 'ticket_close') {
-      const claimedBy = config.claimedBy;
-      if (!claimedBy || claimedBy !== interaction.user.id)
-        return await interaction.reply({ content: "❌ فقط من استلم التكت يستطيع غلقه.", ephemeral: true });
-      const confirmRow = new ActionRowBuilder()
-        .addComponents(
-          new ButtonBuilder().setCustomId('ticket_cancel_close').setLabel('تراجع').setStyle(ButtonStyle.Secondary),
-          new ButtonBuilder().setCustomId('ticket_confirm_close').setLabel('غلق نهائي').setStyle(ButtonStyle.Danger)
-        );
-      return await interaction.reply({ content: 'هل أنت متأكد أنك تريد غلق التكت؟', components: [confirmRow], ephemeral: false });
-    }
-    if (interaction.customId === 'ticket_cancel_close') {
-      return await interaction.update({ content: 'تم إلغاء عملية الغلق.', components: [] });
-    }
-    if (interaction.customId === 'ticket_confirm_close') {
-      ticketConfigData[interaction.channel.id] && delete ticketConfigData[interaction.channel.id];
-      saveTickets();
-      await interaction.channel.delete();
-    }
+    await interaction.reply({ content: `✅ تم فتح تكت جديد: <#${channel.id}>`, ephemeral: true });
   }
 
   // أمر giveaway
@@ -287,16 +252,19 @@ client.on('interactionCreate', async interaction => {
     const minutes = interaction.options.getInteger('minutes') || 0;
     const endTime = Date.now() + ((days*24*60 + hours*60 + minutes)*60*1000);
     let joined = [];
+
     const embed = new EmbedBuilder()
-      .setTitle('🎉 Giveaway 🎉')
-      .setDescription(desc)
+      .setTitle('🎉 قيف أواي كبير!')
+      .setDescription(`> **${desc}**\n\nاضغط الزر بالأسفل للانضمام!\n\n🕒 وقت إعلان الفائز: <t:${Math.floor(endTime/1000)}:R>`)
       .addFields(
-        { name: 'بواسطة', value: `<@${interaction.user.id}>`, inline: true },
-        { name: 'عدد المنضمين', value: '0', inline: true },
-        { name: 'وقت إعلان الفائز', value: `<t:${Math.floor(endTime/1000)}:R>`, inline: false }
-      );
+        { name: '🎁 بواسطة', value: `<@${interaction.user.id}>`, inline: true },
+        { name: '👥 عدد المنضمين', value: '0', inline: true }
+      )
+      .setColor(0xf39c12)
+      .setFooter({ text: 'حظاً موفقاً للجميع!' });
+
     const row = new ActionRowBuilder()
-      .addComponents(new ButtonBuilder().setCustomId('giveaway_join').setLabel('🎉').setStyle(ButtonStyle.Primary));
+      .addComponents(new ButtonBuilder().setCustomId('giveaway_join').setLabel('🎉 انضم للقيف أواي').setStyle(ButtonStyle.Success));
     const msg = await interaction.reply({ embeds: [embed], components: [row], fetchReply: true });
     client.giveaway = {
       msgId: msg.id,
@@ -306,12 +274,13 @@ client.on('interactionCreate', async interaction => {
       creatorId: interaction.user.id
     };
   }
-  // زر الانضمام لقيف أواي
+
+  // زر الانضمام للقيف أواي
   if (interaction.isButton() && interaction.customId === 'giveaway_join' && client.giveaway && client.giveaway.msgId === interaction.message.id) {
     if (!client.giveaway.joined.includes(interaction.user.id)) {
       client.giveaway.joined.push(interaction.user.id);
       const embed = interaction.message.embeds[0];
-      let newEmbed = EmbedBuilder.from(embed).spliceFields(1, 1, { name: 'عدد المنضمين', value: String(client.giveaway.joined.length), inline: true });
+      let newEmbed = EmbedBuilder.from(embed).spliceFields(1, 1, { name: '👥 عدد المنضمين', value: String(client.giveaway.joined.length), inline: true });
       await interaction.update({ embeds: [newEmbed], components: interaction.message.components });
     } else {
       await interaction.reply({ content: 'لقد انضممت بالفعل!', ephemeral: true });
